@@ -60,9 +60,9 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    override fun onNewIntent(newIntent: Intent, caller: ComponentCaller) {
-        super.onNewIntent(newIntent, caller)
-        setIntent(newIntent, caller)
+    override fun onNewIntent(newIntent: Intent) {
+        super.onNewIntent(newIntent)
+        setIntent(newIntent)
 
         this.sharedUrl = getTargetFrom(newIntent)
     }
