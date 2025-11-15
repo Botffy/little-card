@@ -17,8 +17,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import hu.sarmin.yt2ig.ui.theme.Yt2igTheme
+import okhttp3.HttpUrl.Companion.toHttpUrl
 
-fun getUrlFrom(intent: Intent?): String? {
+private fun getUrlFrom(intent: Intent?): String? {
     if (intent?.action == Intent.ACTION_SEND && intent.type == "text/plain") {
         return intent.getStringExtra(Intent.EXTRA_TEXT)
     }
@@ -26,14 +27,26 @@ fun getUrlFrom(intent: Intent?): String? {
     return null
 }
 
+private fun getTargetFrom(intent: Intent?): ShareTarget {
+    val url = getUrlFrom(intent) ?: return NoShareTarget
+
+    return try {
+        getTargetFor(url.toHttpUrl())
+    } catch (e: IllegalArgumentException) {
+        UnknownShareTarget
+    }
+}
+
+
+
 class MainActivity : ComponentActivity() {
-    private var sharedUrl by mutableStateOf<String?>(null)
+    private var sharedUrl by mutableStateOf<ShareTarget>(NoShareTarget)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
-        this.sharedUrl = getUrlFrom(intent)
+        this.sharedUrl = getTargetFrom(intent)
 
         setContent {
             Yt2igTheme {
@@ -51,13 +64,19 @@ class MainActivity : ComponentActivity() {
         super.onNewIntent(newIntent, caller)
         setIntent(newIntent, caller)
 
-        this.sharedUrl = getUrlFrom(newIntent)
+        this.sharedUrl = getTargetFrom(newIntent)
     }
 }
 
 @Composable
-fun Display(value: String?, modifier: Modifier = Modifier) {
-    val displayed = value ?: "nothing shared"
+fun Display(value: ShareTarget, modifier: Modifier = Modifier) {
+    val displayed = value.let {
+        when (it) {
+            is NoShareTarget -> "No shared URL"
+            is UnknownShareTarget -> "Unknown URL"
+            is ValidShareTarget -> "Shared URL: ${it.url}"
+        }
+    }
     Text(
         text = displayed,
         modifier = modifier
@@ -68,6 +87,6 @@ fun Display(value: String?, modifier: Modifier = Modifier) {
 @Composable
 fun DisplayPreview() {
     Yt2igTheme {
-        Display("Android")
+        Display(NoShareTarget)
     }
 }
