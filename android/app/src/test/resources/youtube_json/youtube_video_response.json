@@ -1,0 +1,60 @@
+{
+  "kind": "youtube#videoListResponse",
+  "etag": "qT1IESz8OqT1ShUdtnpxj0FvrHI",
+  "items": [
+    {
+      "kind": "youtube#video",
+      "etag": "eCWDsz27GxCY4eGyRTSb3mCfELg",
+      "id": "I_aBmrYChfQ",
+      "snippet": {
+        "publishedAt": "2010-08-29T18:56:25Z",
+        "channelId": "UCQSiFTjCMiHn2cxwKFkn-JQ",
+        "title": "Pixies - Where is my mind",
+        "description": "Pixies live Fa. Onrust 1988",
+        "thumbnails": {
+          "default": {
+            "url": "https://i.ytimg.com/vi/I_aBmrYChfQ/default.jpg",
+            "width": 120,
+            "height": 90
+          },
+          "medium": {
+            "url": "https://i.ytimg.com/vi/I_aBmrYChfQ/mqdefault.jpg",
+            "width": 320,
+            "height": 180
+          },
+          "high": {
+            "url": "https://i.ytimg.com/vi/I_aBmrYChfQ/hqdefault.jpg",
+            "width": 480,
+            "height": 360
+          }
+        },
+        "channelTitle": "CasaAzul65",
+        "tags": [
+          "pixies",
+          "onrust"
+        ],
+        "categoryId": "10",
+        "liveBroadcastContent": "none",
+        "defaultLanguage": "nl",
+        "localized": {
+          "title": "Pixies - Where is my mind",
+          "description": "Pixies live Fa. Onrust 1988"
+        },
+        "defaultAudioLanguage": "en"
+      },
+      "contentDetails": {
+        "duration": "PT3M13S",
+        "dimension": "2d",
+        "definition": "sd",
+        "caption": "false",
+        "licensedContent": false,
+        "contentRating": {},
+        "projection": "rectangular"
+      }
+    }
+  ],
+  "pageInfo": {
+    "totalResults": 1,
+    "resultsPerPage": 1
+  }
+}

@@ -1,8 +1,19 @@
+import java.io.FileInputStream
+import java.util.Properties
+
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     id("de.mannodermaus.android-junit5") version "1.14.0.0"
+}
+
+
+val keyPropsFile = rootProject.file("key.properties")
+val keyProperties = Properties()
+if (keyPropsFile.exists()) {
+    keyProperties.load(FileInputStream(keyPropsFile))
 }
 
 android {
@@ -19,6 +30,12 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        buildConfigField(
+            "String",
+            "YOUTUBE_API_KEY",
+            "\"${keyProperties.getProperty("YOUTUBE_API_KEY", "")}\""
+        )
     }
 
     buildTypes {
@@ -39,6 +56,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 
@@ -52,8 +70,12 @@ dependencies {
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)
     implementation(libs.okhttp)
+
     testImplementation(libs.junit.jupiter)
     testImplementation(libs.truth)
+    testImplementation(libs.mockwebserver3)
+    testImplementation(libs.json) // android's own implementation is not available in tests
+
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(platform(libs.androidx.compose.bom))
