@@ -1,22 +1,12 @@
 package hu.sarmin.yt2ig
 
-import android.app.ComponentCaller
 import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.OnBackPressedCallback
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
-import hu.sarmin.yt2ig.ui.theme.Yt2igTheme
+import androidx.compose.runtime.mutableStateListOf
 import okhttp3.HttpUrl.Companion.toHttpUrl
 
 private fun getUrlFrom(intent: Intent?): String? {
@@ -27,66 +17,62 @@ private fun getUrlFrom(intent: Intent?): String? {
     return null
 }
 
-private fun getTargetFrom(intent: Intent?): ShareTarget {
-    val url = getUrlFrom(intent) ?: return NoShareTarget
+private fun getStateFrom(intent: Intent?): State {
+    try {
+        val url = getUrlFrom(intent) ?: return State.Home
+        val target = getTargetFor(url.toHttpUrl())
 
-    return try {
-        getTargetFor(url.toHttpUrl())
+        if (target !is ValidShareTarget) {
+            return State.Error("Unsupported share target")
+        }
+
+        return State.Preview(target)
     } catch (e: IllegalArgumentException) {
-        UnknownShareTarget
+        return State.Error(e.message ?: "something went wrong")
     }
 }
 
-
-
 class MainActivity : ComponentActivity() {
-    private var sharedUrl by mutableStateOf<ShareTarget>(NoShareTarget)
+    private val navStack = mutableStateListOf<State>()
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
-        this.sharedUrl = getTargetFrom(intent)
+        if (this.navStack.isEmpty()) {
+            handleIntent(intent)
+        }
 
-        setContent {
-            Yt2igTheme {
-                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    Display(
-                        value = this.sharedUrl,
-                        modifier = Modifier.padding(innerPadding)
-                    )
+        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                if (navStack.size > 1) {
+                    navStack.removeAt(navStack.lastIndex)
+                } else {
+                    finish()
                 }
             }
+        })
+
+        setContent {
+            App(this.navStack.lastOrNull() ?: State.Home) { goHome() }
         }
     }
 
     override fun onNewIntent(newIntent: Intent) {
         super.onNewIntent(newIntent)
-        setIntent(newIntent)
+        intent = newIntent
 
-        this.sharedUrl = getTargetFrom(newIntent)
+        handleIntent(newIntent)
     }
-}
 
-@Composable
-fun Display(value: ShareTarget, modifier: Modifier = Modifier) {
-    val displayed = value.let {
-        when (it) {
-            is NoShareTarget -> "No shared URL"
-            is UnknownShareTarget -> "Unknown URL"
-            is ValidShareTarget -> "Shared URL: ${it.url}"
-        }
+    private fun handleIntent(newIntent: Intent) {
+        val newState = getStateFrom(newIntent)
+        this.navStack.clear()
+        this.navStack.add(newState)
     }
-    Text(
-        text = displayed,
-        modifier = modifier
-    )
-}
 
-@Preview(showBackground = true)
-@Composable
-fun DisplayPreview() {
-    Yt2igTheme {
-        Display(NoShareTarget)
+    fun goHome() {
+        this.navStack.add(State.Home)
     }
 }
