@@ -53,7 +53,7 @@ fun App(value: State, goHome: () -> Unit) {
         Crossfade(targetState = value, label = "state") { current ->
             when (current) {
                 is State.Home -> HomeScreen()
-                is State.Preview -> PreviewScreen(current.shareTarget, goHome)
+                is State.Preview -> PreviewScreen(current.shareTarget, current.loading, goHome)
                 is State.Error -> ErrorScreen(current.message, goHome)
             }
         }
@@ -73,14 +73,22 @@ fun HomeScreen() {
 }
 
 @Composable
-fun PreviewScreen(target: ValidShareTarget, goHome: () -> Unit) {
+fun PreviewScreen(target: ValidShareTarget, loading: LoadingState, goHome: () -> Unit) {
     AppFrame(false, "Preview", goHome) {
-        Text(
-            text = "Preview: ${target.url}",
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(it)
-        )
+        when (loading) {
+            is LoadingState.Loading -> Text(
+                text = "Loading info for: ${target.url}",
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(it)
+            )
+            is LoadingState.Loaded -> Text(
+                text = "Video Title: ${loading.data.title}\nChannel: ${loading.data.channel}\nURL: ${target.url}",
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(it)
+            )
+        }
     }
 }
 
