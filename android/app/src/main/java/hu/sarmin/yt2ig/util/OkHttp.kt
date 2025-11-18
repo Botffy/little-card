@@ -9,6 +9,10 @@ import okhttp3.Response
 import java.io.IOException
 import kotlin.coroutines.resume
 
+private val HTTP_CLIENT = OkHttpClient()
+
+fun getHttpClient(): OkHttpClient = HTTP_CLIENT
+
 suspend fun OkHttpClient.await(request: Request): Response =
     suspendCancellableCoroutine { cont ->
         val call = newCall(request)

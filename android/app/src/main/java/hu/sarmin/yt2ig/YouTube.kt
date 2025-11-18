@@ -1,9 +1,10 @@
 package hu.sarmin.yt2ig
 
 import hu.sarmin.yt2ig.util.await
+import hu.sarmin.yt2ig.util.getHttpClient
+import hu.sarmin.yt2ig.util.getStringOrNull
 import okhttp3.HttpUrl
 import okhttp3.HttpUrl.Companion.toHttpUrl
-import okhttp3.OkHttpClient
 import okhttp3.Request
 import org.json.JSONObject
 import java.io.IOException
@@ -20,8 +21,6 @@ interface YouTubeService {
     suspend fun getVideoInfo(videoId: String): YouTubeVideoInfo
 }
 
-private val httpClient = OkHttpClient()
-
 class RealYouTubeService(private val apiKey: String, private val apiEndpoint: String = YOUTUBE_API_URL) : YouTubeService {
     override suspend fun getVideoInfo(videoId: String): YouTubeVideoInfo {
         val url = apiEndpoint.toHttpUrl()
@@ -36,7 +35,7 @@ class RealYouTubeService(private val apiKey: String, private val apiEndpoint: St
             .addHeader("X-Goog-Api-Key", apiKey)
             .build()
 
-        httpClient.await(request).use { response ->
+        getHttpClient().await(request).use { response ->
             if (!response.isSuccessful) {
                 throw IOException("YT API error ${response.code}, ${response.message}")
             }
@@ -48,16 +47,20 @@ class RealYouTubeService(private val apiKey: String, private val apiEndpoint: St
             }
             val item = items.getJSONObject(0)
 
-            val thumbnailUrl = item.getJSONObject("snippet")
-                .getJSONObject("thumbnails")
-                .getJSONObject("default")
+            val thumbnailUrl = item.getStringOrNull("snippet.thumbnails.maxres.url") ?:
+                item.getStringOrNull("snippet.thumbnails.high.url") ?:
+                item.getStringOrNull("snippet.thumbnails.medium.url") ?:
+                item.getStringOrNull("snippet.thumbnails.default.url") ?:
+                throw IllegalArgumentException("No thumbnail found for video ID: $videoId")
+
+
             val title = item.getJSONObject("snippet").getString("title")
             val uploader = item.getJSONObject("snippet").getString("channelTitle")
 
             return YouTubeVideoInfo(
                 title = title,
                 channel = uploader,
-                thumbnailUrl = thumbnailUrl.getString("url").toHttpUrl()
+                thumbnailUrl = thumbnailUrl.toHttpUrl()
             )
         }
     }
