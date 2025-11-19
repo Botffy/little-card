@@ -36,6 +36,7 @@ private class CardGenerator(
     private var scaleFactor: Float = 1f
 
     // Base layout constants (for 1800px width)
+    private val baseFrameBorder = 24f  // Border thickness around thumbnail (Polaroid style)
     private val baseHorizontalPadding = 48f
     private val baseVerticalPadding = 48f
     private val baseYoutubeIconHeight = 100f
@@ -45,6 +46,7 @@ private class CardGenerator(
     private val baseChannelTextSize = 32f
 
     // Scaled layout constants (calculated after thumbnail is loaded)
+    private val frameBorderPx: Float get() = (baseFrameBorder * scaleFactor).roundToInt().toFloat()
     private val horizontalPaddingPx: Float get() = (baseHorizontalPadding * scaleFactor).roundToInt().toFloat()
     private val verticalPaddingPx: Float get() = (baseVerticalPadding * scaleFactor).roundToInt().toFloat()
     private val youtubeIconHeightPx: Float get() = (baseYoutubeIconHeight * scaleFactor).roundToInt().toFloat()
@@ -79,9 +81,10 @@ private class CardGenerator(
         thumbnailGradient = thumbnail.getGradientColors()
 
         cardWidth = thumbnail.width.coerceIn(MIN_CARD_WIDTH, MAX_CARD_WIDTH)
-        thumbHeight = cardWidth * 9 / 16
-
         scaleFactor = cardWidth.toFloat() / MAX_CARD_WIDTH
+
+        val thumbnailWidth = cardWidth - (2 * frameBorderPx).toInt()
+        thumbHeight = thumbnailWidth * 9 / 16
 
         logoBitmap = loadLogo()
         logoWidthPx = calculateLogoWidth()
@@ -111,7 +114,7 @@ private class CardGenerator(
     }
 
     private fun calculateTextWidth(): Int {
-        return (cardWidth - 2 * horizontalPaddingPx - logoWidthPx - logoTitleSpacingPx).toInt()
+        return (cardWidth - 2 * frameBorderPx - 2 * horizontalPaddingPx - logoWidthPx - logoTitleSpacingPx).toInt()
     }
 
     private fun createTitleLayout(width: Int): StaticLayout {
@@ -159,7 +162,7 @@ private class CardGenerator(
 
     private fun createCardBitmap(): Bitmap {
         val bottomBarHeight = calculateBottomBarHeight()
-        val cardHeight = thumbHeight + bottomBarHeight
+        val cardHeight = frameBorderPx.toInt() + thumbHeight + bottomBarHeight
         return Bitmap.createBitmap(cardWidth, cardHeight, Bitmap.Config.ARGB_8888)
     }
 
@@ -184,8 +187,9 @@ private class CardGenerator(
     }
 
     private fun drawThumbnail(canvas: Canvas) {
-        val scaledThumbnail = scaleThumbnail(thumbnail, cardWidth, thumbHeight)
-        canvas.drawBitmap(scaledThumbnail, 0f, 0f, null)
+        val thumbnailWidth = cardWidth - (2 * frameBorderPx).toInt()
+        val scaledThumbnail = scaleThumbnail(thumbnail, thumbnailWidth, thumbHeight)
+        canvas.drawBitmap(scaledThumbnail, frameBorderPx, frameBorderPx, null)
     }
 
     private fun drawBottomBar(canvas: Canvas, cardHeight: Int) {
@@ -193,9 +197,11 @@ private class CardGenerator(
             color = frameColor
             style = Paint.Style.FILL
         }
+
+        val bottomBarStart = frameBorderPx + thumbHeight
         canvas.drawRect(
             0f,
-            thumbHeight.toFloat(),
+            bottomBarStart,
             cardWidth.toFloat(),
             cardHeight.toFloat(),
             paint
@@ -203,22 +209,22 @@ private class CardGenerator(
     }
 
     private fun drawLogo(canvas: Canvas) {
-        val contentStartY = thumbHeight + verticalPaddingPx
-        val logoX = cardWidth - horizontalPaddingPx - logoWidthPx
+        val contentStartY = frameBorderPx + thumbHeight + verticalPaddingPx
+        val logoX = cardWidth - frameBorderPx - horizontalPaddingPx - logoWidthPx
         drawScaledLogo(canvas, logoX, contentStartY, youtubeIconHeightPx)
     }
 
     private fun drawTextContent(canvas: Canvas) {
-        val contentStartY = thumbHeight + verticalPaddingPx
+        val contentStartY = frameBorderPx + thumbHeight + verticalPaddingPx
 
         canvas.save()
-        canvas.translate(horizontalPaddingPx, contentStartY)
+        canvas.translate(frameBorderPx + horizontalPaddingPx, contentStartY)
         titleLayout.draw(canvas)
         canvas.restore()
 
         canvas.save()
         val channelY = contentStartY + titleLayout.height + titleSpacingPx
-        canvas.translate(horizontalPaddingPx, channelY)
+        canvas.translate(frameBorderPx + horizontalPaddingPx, channelY)
         channelLayout.draw(canvas)
         canvas.restore()
     }
@@ -232,7 +238,6 @@ private class CardGenerator(
 
         val scaledBitmap = Bitmap.createScaledBitmap(thumbnail, targetWidth, scaledHeight, true)
 
-        // Center crop if needed
         if (scaledHeight > targetHeight) {
             val yOffset = (scaledHeight - targetHeight) / 2
             return Bitmap.createBitmap(scaledBitmap, 0, yOffset, targetWidth, targetHeight)
