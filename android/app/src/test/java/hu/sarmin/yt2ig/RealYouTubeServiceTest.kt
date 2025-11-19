@@ -54,7 +54,7 @@ class RealYouTubeServiceTest {
 
             val service = RealYouTubeService(TEST_API_KEY, mockWebServer.url("/").toString())
             val result = runBlocking { service.getVideoInfo(EXISTING_VIDEO_ID) }
-            assertEquals("https://i.ytimg.com/vi/I_aBmrYChfQ/default.jpg", result.thumbnailUrl.toString())
+            assertEquals("https://i.ytimg.com/vi/I_aBmrYChfQ/hqdefault.jpg", result.thumbnailUrl.toString())
             assertEquals("Pixies - Where is my mind", result.title)
             assertEquals("CasaAzul65", result.channel)
         }

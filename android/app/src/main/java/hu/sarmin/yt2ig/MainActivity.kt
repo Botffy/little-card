@@ -26,6 +26,8 @@ class MainActivity : ComponentActivity() {
         RealYouTubeService(apiKey = BuildConfig.YOUTUBE_API_KEY)
     }
 
+    private val imageLoader: ImageLoader by lazy { ImageLoader(this) }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -63,6 +65,7 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun getStateFrom(intent: Intent?): State {
+
         try {
             val url = getUrlFrom(intent) ?: return State.Home
             val target = getTargetFor(url.toHttpUrl())
@@ -72,13 +75,25 @@ class MainActivity : ComponentActivity() {
                 return State.Error("Unsupported share target")
             }
 
-            val state = State.Preview(target, LoadingState.Loading)
+            val state = State.Preview(target, PreviewLoadingState.Loading)
 
             lifecycleScope.launch {
                 try {
                     val videoInfo = youTubeService.getVideoInfo(target.videoId)
-                    val loadedState = State.Preview(target, LoadingState.Loaded(videoInfo))
-                    replaceState(state, loadedState)
+                    val loadedInfoState = State.Preview(target, PreviewLoadingState.LoadedInfo(videoInfo))
+                    replaceState(state, loadedInfoState)
+
+                    imageLoader.ensureLoaded(videoInfo.thumbnailUrl)
+                    val loadedImageState = State.Preview(target, PreviewLoadingState.LoadedImage(videoInfo))
+                    replaceState(loadedInfoState, loadedImageState)
+
+                    val previewImage = generateCard(videoInfo, imageLoader)
+                    val createdPreviewState = State.Preview(
+                        target,
+                        PreviewLoadingState.CreatedPreview(videoInfo, previewImage)
+                    )
+                    replaceState(loadedImageState, createdPreviewState)
+
                 } catch (e: Exception) {
                     val errorState = State.Error(e.message ?: "something went wrong")
                     replaceState(state, errorState)

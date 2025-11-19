@@ -1,6 +1,7 @@
 package hu.sarmin.yt2ig
 
 import androidx.compose.animation.Crossfade
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -14,6 +15,8 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
 import hu.sarmin.yt2ig.ui.theme.Yt2igTheme
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -73,17 +76,31 @@ fun HomeScreen() {
 }
 
 @Composable
-fun PreviewScreen(target: ValidShareTarget, loading: LoadingState, goHome: () -> Unit) {
+fun PreviewScreen(target: ValidShareTarget, loading: PreviewLoadingState, goHome: () -> Unit) {
     AppFrame(false, "Preview", goHome) {
         when (loading) {
-            is LoadingState.Loading -> Text(
+            is PreviewLoadingState.Loading -> Text(
                 text = "Loading info for: ${target.url}",
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(it)
             )
-            is LoadingState.Loaded -> Text(
+            is PreviewLoadingState.LoadedInfo -> Text(
                 text = "Video Title: ${loading.data.title}\nChannel: ${loading.data.channel}\nURL: ${target.url}",
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(it)
+            )
+            is PreviewLoadingState.LoadedImage -> Text(
+                text = "Downloaded thumbnail for video: ${loading.data.title}",
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(it)
+            )
+            is PreviewLoadingState.CreatedPreview -> Image(
+                bitmap = loading.previewImage.asImageBitmap(),
+                contentDescription = "preview for video: ${loading.data.title}",
+                contentScale = ContentScale.Fit,
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(it)
