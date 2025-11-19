@@ -9,8 +9,14 @@ import android.text.Layout
 import android.text.StaticLayout
 import android.text.TextPaint
 import android.text.TextUtils
+import hu.sarmin.yt2ig.util.getGradientColors
 import java.io.IOException
 import kotlin.math.roundToInt
+
+data class ShareCard(
+    val image: Bitmap,
+    val gradientColors: Pair<Int, Int>
+)
 
 private const val MAX_CARD_WIDTH = 1800
 private const val MIN_CARD_WIDTH = 800
@@ -18,7 +24,7 @@ private const val MIN_CARD_WIDTH = 800
 suspend fun generateCard(
     videoInfo: YouTubeVideoInfo,
     imageLoader: ImageLoader
-): Bitmap = CardGenerator(videoInfo, imageLoader).generate()
+): ShareCard = CardGenerator(videoInfo, imageLoader).generate()
 
 private class CardGenerator(
     private val videoInfo: YouTubeVideoInfo,
@@ -52,6 +58,7 @@ private class CardGenerator(
 
     // Loaded resources
     private lateinit var thumbnail: Bitmap
+    private lateinit var thumbnailGradient: Pair<Int, Int>
     private lateinit var logoBitmap: Bitmap
     private var logoWidthPx: Float = 0f
 
@@ -59,16 +66,17 @@ private class CardGenerator(
     private lateinit var titleLayout: StaticLayout
     private lateinit var channelLayout: StaticLayout
 
-    suspend fun generate(): Bitmap {
+    suspend fun generate(): ShareCard {
         loadResources()
         createTextLayouts()
         val card = createCardBitmap()
         drawContent(card)
-        return card
+        return ShareCard(card, thumbnailGradient)
     }
 
     private suspend fun loadResources() {
         thumbnail = loadThumbnail()
+        thumbnailGradient = thumbnail.getGradientColors()
 
         cardWidth = thumbnail.width.coerceIn(MIN_CARD_WIDTH, MAX_CARD_WIDTH)
         thumbHeight = cardWidth * 9 / 16
