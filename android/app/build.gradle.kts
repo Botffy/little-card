@@ -70,6 +70,7 @@ dependencies {
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)
     implementation(libs.okhttp)
+    implementation(libs.androidx.palette.ktx)
 
     testImplementation(libs.junit.jupiter)
     testImplementation(libs.truth)
