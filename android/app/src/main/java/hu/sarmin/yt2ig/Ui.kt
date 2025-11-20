@@ -3,10 +3,13 @@ package hu.sarmin.yt2ig
 import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material3.Button
@@ -22,6 +25,7 @@ import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.unit.dp
 import hu.sarmin.yt2ig.ui.theme.Yt2igTheme
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -80,60 +84,74 @@ fun App(value: State, goHome: () -> Unit, shareToInstaStory: (PreviewLoadingStat
 }
 
 @Composable
+fun StandardScreen(modifier: Modifier, content: @Composable ColumnScope.() -> Unit) {
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = 16.dp, vertical = 24.dp)
+    ) {
+        content()
+    }
+}
+
+@Composable
 fun HomeScreen() {
-    AppFrame(true, "yt2ig", {  }) {
-        Text(
-            text = "Home Screen",
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(it)
-        )
+    AppFrame(true, "yt2ig", {  }) { padding ->
+        StandardScreen(
+            Modifier.padding(padding)
+        ) {
+            Text(
+                text = "Home Screen",
+                modifier = Modifier
+                    .fillMaxWidth()
+            )
+        }
     }
 }
 
 @Composable
 fun PreviewScreen(target: ValidShareTarget, loading: PreviewLoadingState) {
     val actions = LocalAppActions.current
-    AppFrame(false, "Preview", actions.goHome) {
-        when (loading) {
-            is PreviewLoadingState.Loading -> Text(
-                text = "Loading info for: ${target.url}",
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(it)
-            )
-            is PreviewLoadingState.LoadedInfo -> Text(
-                text = "Video Title: ${loading.data.title}\nChannel: ${loading.data.channel}\nURL: ${target.url}",
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(it)
-            )
-            is PreviewLoadingState.LoadedThumbnail -> Text(
-                text = "Downloaded thumbnail for video: ${loading.data.title}",
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(it)
-            )
-            is PreviewLoadingState.CreatedPreview -> CreatedPreviewScreen(loading, it)
+    AppFrame(false, "Preview", actions.goHome) { padding ->
+        StandardScreen(
+            Modifier.padding(padding)
+        ) {
+            when (loading) {
+                is PreviewLoadingState.Loading -> Text(
+                    text = "Loading info for: ${target.url}",
+                    modifier = Modifier
+                        .fillMaxWidth()
+                )
+                is PreviewLoadingState.LoadedInfo -> Text(
+                    text = "Video Title: ${loading.data.title}\nChannel: ${loading.data.channel}\nURL: ${target.url}",
+                    modifier = Modifier
+                        .fillMaxWidth()
+                )
+                is PreviewLoadingState.LoadedThumbnail -> Text(
+                    text = "Downloaded thumbnail for video: ${loading.data.title}",
+                    modifier = Modifier
+                        .fillMaxWidth()
+                )
+                is PreviewLoadingState.CreatedPreview -> CreatedPreviewScreen(loading)
+            }
         }
     }
 }
 
 @Composable
-fun CreatedPreviewScreen(state: PreviewLoadingState.CreatedPreview, padding: PaddingValues) {
+fun CreatedPreviewScreen(state: PreviewLoadingState.CreatedPreview) {
     val actions = LocalAppActions.current
-    Column(modifier = Modifier.fillMaxSize().padding(padding)) {
-        Image(
-            bitmap = state.shareCard.image.asImageBitmap(),
-            contentDescription = "preview for video: ${state.data.title}",
-            contentScale = ContentScale.Fit,
-            modifier = Modifier
-                .fillMaxWidth()
-        )
-        Button(
-            onClick = { actions.shareToInstaStory(state) }
-        ) { Text("Make it an Insta story") }
-    }
+    Image(
+        bitmap = state.shareCard.image.asImageBitmap(),
+        contentDescription = "preview for video: ${state.data.title}",
+        contentScale = ContentScale.Fit,
+        modifier = Modifier
+            .fillMaxWidth()
+    )
+    Button(
+        onClick = { actions.shareToInstaStory(state) }
+    ) { Text("Make it an Insta story") }
 }
 
 @Composable
