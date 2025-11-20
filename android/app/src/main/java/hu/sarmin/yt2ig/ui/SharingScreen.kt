@@ -17,7 +17,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Favorite
@@ -74,9 +74,9 @@ fun SharingScreen(target: ValidShareTarget, loading: AppState.Share.LoadingState
                 ) {
                     Card(
                         modifier = Modifier
-                            .fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+                            .fillMaxWidth()
+                            .padding(vertical = 8.dp),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
                     ) {
 
                         Column(
@@ -119,6 +119,8 @@ fun SharingScreen(target: ValidShareTarget, loading: AppState.Share.LoadingState
                     UrlBlock(target.url.toString()) {
                         actions.copyUrl(target)
                     }
+
+                    Spacer(modifier = Modifier.size(32.dp))
                 }
             }
         }
@@ -160,7 +162,8 @@ private fun LoadedImage(image: Bitmap) {
         bitmap = image.asImageBitmap(),
         contentDescription = "Image",
         modifier = Modifier
-            .fillMaxWidth(),
+            .fillMaxWidth()
+            .padding(bottom = 18.dp, top = 12.dp),
         contentScale = ContentScale.FillWidth
     )
 }
@@ -176,7 +179,7 @@ private fun ShareButtons(enabled: Boolean, shareToInsta: () -> Unit = {}, shareT
         Button(
             onClick = shareToInsta,
             enabled = enabled,
-            modifier = Modifier.weight(1f)
+            modifier = Modifier.weight(1f),
         ) {
             Icon(
                 imageVector = Icons.Filled.Favorite,
@@ -190,7 +193,7 @@ private fun ShareButtons(enabled: Boolean, shareToInsta: () -> Unit = {}, shareT
 
         OutlinedButton(
             onClick = shareToOther,
-            enabled = enabled
+            enabled = enabled,
         ) {
             Icon(
                 imageVector = Icons.Default.Share,
@@ -204,7 +207,7 @@ private fun ShareButtons(enabled: Boolean, shareToInsta: () -> Unit = {}, shareT
 private fun UrlBlock(url: String, onCopy: () -> Unit = {}) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = MaterialTheme.shapes.medium
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
         Column(
             modifier = Modifier
@@ -220,18 +223,20 @@ private fun UrlBlock(url: String, onCopy: () -> Unit = {}) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip((RoundedCornerShape(999.dp)))
+                    .clip(MaterialTheme.shapes.small)
                     .background(MaterialTheme.colorScheme.surfaceVariant)
-                    .padding(horizontal = 12.dp, vertical = 8.dp),
+                    .padding(horizontal = 12.dp, vertical = 4.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = url,
-                    modifier = Modifier.weight(1f),
-                    style = MaterialTheme.typography.bodyMedium,
-                    overflow = TextOverflow.Ellipsis,
-                    maxLines = 1
-                )
+                SelectionContainer {
+                    Text(
+                        text = url,
+                        modifier = Modifier.weight(1f),
+                        style = MaterialTheme.typography.bodyMedium,
+                        overflow = TextOverflow.Ellipsis,
+                        maxLines = 1
+                    )
+                }
 
                 IconButton(onClick = onCopy) {
                     Icon(
@@ -240,8 +245,6 @@ private fun UrlBlock(url: String, onCopy: () -> Unit = {}) {
                     )
                 }
             }
-
-            ExplanationBlock()
         }
     }
 }
@@ -249,27 +252,10 @@ private fun UrlBlock(url: String, onCopy: () -> Unit = {}) {
 @Preview(uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES)
 @Composable
 private fun PreviewUrlBlock() {
-    Box(Modifier.size(360.dp)) {
+    Box(
+        modifier = Modifier
+            .size(360.dp)
+    ) {
         UrlBlock("http://youtu.be/videoid") { }
     }
-}
-
-@Composable
-private fun ExplanationBlock() {
-    Text(
-        text = """
-            Instagram won't add the link automatically to your story, you need to paste it manually.
-            
-            To add the link:
-            
-            1. In the Story Editor, pull up the sticker tray by tapping the sticker icon at the top of the screen.
-            2. Select the "Link" sticker from the tray.
-            3. Paste the copied video link into the URL field (it's already in your clipboard).
-            4. Customize the sticker text if desired, then tap "Done" to add it.
-            5. Position the link sticker on your story as desired.
-            6. Enjoy sharing your story with the video link and a cute preview card!
-                    """.trimIndent(),
-        style = MaterialTheme.typography.bodySmall,
-        color = MaterialTheme.colorScheme.primary
-    )
 }
