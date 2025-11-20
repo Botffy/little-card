@@ -27,7 +27,7 @@ private fun getUrlFrom(intent: Intent?): String? {
 }
 
 class MainActivity : ComponentActivity() {
-    private val navStack = mutableStateListOf<State>()
+    private val navStack = mutableStateListOf<AppState>()
 
     private val youTubeService: YouTubeService by lazy {
         RealYouTubeService(apiKey = BuildConfig.YOUTUBE_API_KEY)
@@ -55,7 +55,7 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             App(
-                this.navStack.lastOrNull() ?: State.Home, fun() {
+                this.navStack.lastOrNull() ?: AppState.Home, fun() {
                     goHome()
                 },
                 shareToInstaStory = { shareToInstaStory(it.shareCard) }
@@ -76,49 +76,49 @@ class MainActivity : ComponentActivity() {
         this.navStack.add(newState)
     }
 
-    private fun getStateFrom(intent: Intent?): State {
+    private fun getStateFrom(intent: Intent?): AppState {
 
         try {
-            val url = getUrlFrom(intent) ?: return State.Home
+            val url = getUrlFrom(intent) ?: return AppState.Home
             val target = getTargetFor(url.toHttpUrl())
 
             // TODO this will get more generic, I promise
             if (target !is YouTubeVideo) {
-                return State.Error("Unsupported share target")
+                return AppState.Error("Unsupported share target")
             }
 
-            val state = State.Preview(target, PreviewLoadingState.Loading)
+            val state = AppState.Share(target, AppState.Share.LoadingState.Starting)
 
             lifecycleScope.launch {
                 try {
                     val videoInfo = youTubeService.getVideoInfo(target.videoId)
-                    val loadedInfoState = State.Preview(target, PreviewLoadingState.LoadedInfo(videoInfo))
+                    val loadedInfoState = AppState.Share(target, AppState.Share.LoadingState.LoadedInfo(videoInfo))
                     replaceState(state, loadedInfoState)
 
                     imageLoader.ensureLoaded(videoInfo.thumbnailUrl)
-                    val loadedThumbnailState = State.Preview(target, PreviewLoadingState.LoadedThumbnail(videoInfo))
+                    val loadedThumbnailState = AppState.Share(target, AppState.Share.LoadingState.LoadedThumbnail(videoInfo))
                     replaceState(loadedInfoState, loadedThumbnailState)
 
                     val shareCard = generateCard(videoInfo, imageLoader)
-                    val createdPreviewState = State.Preview(
+                    val createdState = AppState.Share(
                         target,
-                        PreviewLoadingState.CreatedPreview(videoInfo, shareCard)
+                        AppState.Share.LoadingState.Created(videoInfo, shareCard)
                     )
-                    replaceState(loadedThumbnailState, createdPreviewState)
+                    replaceState(loadedThumbnailState, createdState)
 
                 } catch (e: Exception) {
-                    val errorState = State.Error(e.message ?: "something went wrong")
+                    val errorState = AppState.Error(e.message ?: "something went wrong")
                     replaceState(state, errorState)
                 }
             }
 
             return state
         } catch (e: IllegalArgumentException) {
-            return State.Error(e.message ?: "something went wrong")
+            return AppState.Error(e.message ?: "something went wrong")
         }
     }
 
-    private fun replaceState(oldState: State, newState: State) {
+    private fun replaceState(oldState: AppState, newState: AppState) {
         val index = this.navStack.indexOf(oldState)
         if (index != -1) {
             this.navStack[index] = newState
@@ -126,7 +126,7 @@ class MainActivity : ComponentActivity() {
     }
 
     fun goHome() {
-        this.navStack.add(State.Home)
+        this.navStack.add(AppState.Home)
     }
 
     fun shareToInstaStory(card: ShareCard) {

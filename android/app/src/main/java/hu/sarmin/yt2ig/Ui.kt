@@ -61,7 +61,7 @@ fun AppFrame(isHome: Boolean, title: String, goHome: () -> Unit, content: @Compo
 
 data class AppActions(
     val goHome: () -> Unit,
-    val shareToInstaStory: (PreviewLoadingState.CreatedPreview) -> Unit
+    val shareToInstaStory: (AppState.Share.LoadingState.Created) -> Unit
 )
 
 val LocalAppActions = staticCompositionLocalOf<AppActions> {
@@ -69,14 +69,14 @@ val LocalAppActions = staticCompositionLocalOf<AppActions> {
 }
 
 @Composable
-fun App(value: State, goHome: () -> Unit, shareToInstaStory: (PreviewLoadingState.CreatedPreview) -> Unit) {
+fun App(value: AppState, goHome: () -> Unit, shareToInstaStory: (AppState.Share.LoadingState.Created) -> Unit) {
     CompositionLocalProvider(LocalAppActions provides AppActions(goHome, shareToInstaStory)) {
         Yt2igTheme {
             Crossfade(targetState = value, label = "state") { current ->
                 when (current) {
-                    is State.Home -> HomeScreen()
-                    is State.Preview -> PreviewScreen(current.shareTarget, current.loading)
-                    is State.Error -> ErrorScreen(current.message, goHome)
+                    is AppState.Home -> HomeScreen()
+                    is AppState.Share -> SharingScreen(current.shareTarget, current.loading)
+                    is AppState.Error -> ErrorScreen(current.message, goHome)
                 }
             }
         }
@@ -111,36 +111,36 @@ fun HomeScreen() {
 }
 
 @Composable
-fun PreviewScreen(target: ValidShareTarget, loading: PreviewLoadingState) {
+fun SharingScreen(target: ValidShareTarget, loading: AppState.Share.LoadingState) {
     val actions = LocalAppActions.current
-    AppFrame(false, "Preview", actions.goHome) { padding ->
+    AppFrame(false, "Share", actions.goHome) { padding ->
         StandardScreen(
             Modifier.padding(padding)
         ) {
             when (loading) {
-                is PreviewLoadingState.Loading -> Text(
+                is AppState.Share.LoadingState.Starting -> Text(
                     text = "Loading info for: ${target.url}",
                     modifier = Modifier
                         .fillMaxWidth()
                 )
-                is PreviewLoadingState.LoadedInfo -> Text(
+                is AppState.Share.LoadingState.LoadedInfo -> Text(
                     text = "Video Title: ${loading.data.title}\nChannel: ${loading.data.channel}\nURL: ${target.url}",
                     modifier = Modifier
                         .fillMaxWidth()
                 )
-                is PreviewLoadingState.LoadedThumbnail -> Text(
+                is AppState.Share.LoadingState.LoadedThumbnail -> Text(
                     text = "Downloaded thumbnail for video: ${loading.data.title}",
                     modifier = Modifier
                         .fillMaxWidth()
                 )
-                is PreviewLoadingState.CreatedPreview -> CreatedPreviewScreen(loading)
+                is AppState.Share.LoadingState.Created -> CreatedShareScreen(loading)
             }
         }
     }
 }
 
 @Composable
-fun CreatedPreviewScreen(state: PreviewLoadingState.CreatedPreview) {
+fun CreatedShareScreen(state: AppState.Share.LoadingState.Created) {
     val actions = LocalAppActions.current
     Image(
         bitmap = state.shareCard.image.asImageBitmap(),
