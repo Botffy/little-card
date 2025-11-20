@@ -14,6 +14,7 @@ import androidx.core.content.FileProvider
 import androidx.lifecycle.lifecycleScope
 import hu.sarmin.yt2ig.util.toHexRgb
 import kotlinx.coroutines.launch
+import okhttp3.HttpUrl
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import java.io.File
 import java.io.FileOutputStream
@@ -58,7 +59,9 @@ class MainActivity : ComponentActivity() {
                 this.navStack.lastOrNull() ?: AppState.Home, fun() {
                     goHome()
                 },
-                shareToInstaStory = { shareToInstaStory(it.shareCard) }
+                shareToInstaStory = { shareToInstaStory(it.targetUrl, it.shareCard) },
+                shareToOther = { shareToOther(it.shareCard) },
+                copyUrl = { target -> copyToClipboard(target.url.toString()) }
             )
         }
     }
@@ -102,7 +105,7 @@ class MainActivity : ComponentActivity() {
                     val shareCard = generateCard(videoInfo, imageLoader)
                     val createdState = AppState.Share(
                         target,
-                        AppState.Share.LoadingState.Created(videoInfo, shareCard)
+                        AppState.Share.LoadingState.Created(videoInfo, target.url, shareCard)
                     )
                     replaceState(loadedThumbnailState, createdState)
 
@@ -129,12 +132,13 @@ class MainActivity : ComponentActivity() {
         this.navStack.add(AppState.Home)
     }
 
-    fun shareToInstaStory(card: ShareCard) {
+    private fun shareToInstaStory(url: HttpUrl, card: ShareCard) {
         val uri = writeFileToCache(card.image)
+        copyToClipboard(url.toString())
         launchInsta(uri, card.gradientColors)
     }
 
-    fun writeFileToCache(bitmap: Bitmap): Uri {
+    private fun writeFileToCache(bitmap: Bitmap): Uri {
         cacheDir.listFiles { file -> file.name.startsWith("sharecard_") }?.forEach { it.delete() }
 
         val filename = "sharecard_${System.currentTimeMillis()}.png"
@@ -167,5 +171,27 @@ class MainActivity : ComponentActivity() {
         } else {
             Toast.makeText(this, "Instagram not installed", Toast.LENGTH_LONG).show()
         }
+    }
+
+    private fun shareToOther(card: ShareCard) {
+        val uri = writeFileToCache(card.image)
+
+        val intent = Intent().apply {
+            action = Intent.ACTION_SEND
+            setType("image/*")
+            putExtra(Intent.EXTRA_STREAM, uri)
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        }
+
+        val chooser = Intent.createChooser(intent, "Share image via")
+        startActivity(chooser)
+    }
+
+    private fun copyToClipboard(url: String) {
+        val clipboard = getSystemService(CLIPBOARD_SERVICE) as android.content.ClipboardManager
+        val clip = android.content.ClipData.newPlainText("Video URL", url)
+        clipboard.setPrimaryClip(clip)
+
+        Toast.makeText(this, "Copied to clipboard", Toast.LENGTH_SHORT).show()
     }
 }
