@@ -55,7 +55,7 @@ fun Yt2igTheme(
     MaterialTheme(
         shapes = shapes,
         colorScheme = colorScheme,
-        typography = Typography,
+        typography = interTypography,
         content = content
     )
 }
