@@ -2,7 +2,7 @@ package hu.sarmin.yt2ig.ui
 
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.rounded.Home
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -26,19 +26,15 @@ fun AppFrame(isHome: Boolean, title: String, goHome: () -> Unit, content: @Compo
                     actionIconContentColor = MaterialTheme.colorScheme.secondary
                 ),
                 title = { Text(title) },
-                navigationIcon = {
+                actions = {
                     if (!isHome) {
-                        IconButton(onClick = goHome) {
+                        IconButton(
+                            onClick = goHome,
+                        ) {
                             Icon(
-                                imageVector = Icons.Default.Home,
-                                contentDescription = "Home"
-                            )
-                        }
-                    } else {
-                        IconButton(onClick = {}) {
-                            Icon(
-                                imageVector = Icons.Default.Home,
-                                contentDescription = "Home"
+                                imageVector = Icons.Rounded.Home,
+                                contentDescription = "Home",
+                                tint = MaterialTheme.colorScheme.onBackground
                             )
                         }
                     }
