@@ -38,7 +38,7 @@ import hu.sarmin.yt2ig.ui.util.PreviewScreenElement
 fun HomeScreen() {
     val actions = LocalAppActions.current
 
-    AppFrame(true, "yt2ig", { }) { padding ->
+    AppFrame(true, "", { }) { padding ->
         StandardScreen(
             Modifier.padding(padding)
         ) {
@@ -222,7 +222,7 @@ private fun About() {
                 buildAnnotatedString {
                     withStyle(style.toSpanStyle()) {
                         append("""
-                        yt2ig is a small application that helps you share YouTube videos in your Instagram Story.
+                        This is a small application that helps you share YouTube videos in your Instagram Story.
                         
                         Share a YouTube link with this app, and it will generate a nice-looking card for you to share on Insta.
                         
