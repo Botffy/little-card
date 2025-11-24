@@ -27,7 +27,7 @@ fun StandardScreen(modifier: Modifier, content: @Composable ColumnScope.() -> Un
                 .widthIn(max = 480.dp)
                 .fillMaxWidth()
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = 16.dp, vertical = 24.dp),
+                .padding(start = 16.dp, end = 16.dp, bottom = 24.dp, top = 0.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
