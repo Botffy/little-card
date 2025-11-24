@@ -2,13 +2,13 @@ package hu.sarmin.yt2ig.ui
 
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Home
+import androidx.compose.material.icons.automirrored.filled.HelpOutline
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -22,19 +22,28 @@ fun AppFrame(isHome: Boolean, title: String, goHome: () -> Unit, content: @Compo
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.background,
                     titleContentColor = MaterialTheme.colorScheme.onBackground,
-                    navigationIconContentColor = MaterialTheme.colorScheme.secondary,
-                    actionIconContentColor = MaterialTheme.colorScheme.secondary
+                    navigationIconContentColor = MaterialTheme.colorScheme.primary,
+                    actionIconContentColor = MaterialTheme.colorScheme.primary
                 ),
-                title = { Text(title) },
+                title = { },
                 actions = {
+                    IconButton(
+                        onClick = { /* TODO yt2ig-33 */ }
+                    ) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.HelpOutline,
+                            contentDescription = "Help"
+                        )
+                    }
+                },
+                navigationIcon = {
                     if (!isHome) {
                         IconButton(
                             onClick = goHome,
                         ) {
                             Icon(
-                                imageVector = Icons.Rounded.Home,
-                                contentDescription = "Home",
-                                tint = MaterialTheme.colorScheme.onBackground
+                                imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
+                                contentDescription = "Go back"
                             )
                         }
                     }

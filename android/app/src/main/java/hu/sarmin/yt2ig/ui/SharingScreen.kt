@@ -75,7 +75,7 @@ fun SharingScreen(target: ValidShareTarget, loading: AppState.Share.LoadingState
                     Card(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(vertical = 8.dp),
+                            .padding(bottom = 8.dp),
                         elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
                     ) {
 
