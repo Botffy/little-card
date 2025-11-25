@@ -42,10 +42,10 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import hu.sarmin.yt2ig.AppState
 import hu.sarmin.yt2ig.LocalAppActions
-import hu.sarmin.yt2ig.ValidShareTarget
+import hu.sarmin.yt2ig.ShareTarget
 
 @Composable
-fun SharingScreen(target: ValidShareTarget, loading: AppState.Share.LoadingState) {
+fun SharingScreen(target: ShareTarget.Valid, loading: AppState.Share.LoadingState) {
     val actions = LocalAppActions.current
     AppFrame(false, "Share", actions.goHome) { padding ->
         StandardScreen(

@@ -1,18 +1,45 @@
 package hu.sarmin.yt2ig
 
 import okhttp3.HttpUrl
+import okhttp3.HttpUrl.Companion.toHttpUrl
 
-sealed interface ShareTarget
+sealed interface Parsing {
+    interface Error : Parsing {
+        object InvalidUrl : Error
+        object UnknownShareTarget : Error
 
-object UnknownShareTarget : ShareTarget
+        fun code() = "error_parsing_${this::class.simpleName!!.lowercase()}"
+    }
+    data class Result(val target: ShareTarget.Valid) : Parsing
+}
 
-object NoShareTarget : ShareTarget
+fun parse(url: String): Parsing {
+    val httpUrl = try {
+        url.toHttpUrl()
+    } catch (e: IllegalArgumentException) {
+        return Parsing.Error.InvalidUrl
+    }
 
-sealed interface ValidShareTarget : ShareTarget {
-    /**
-     * Get the canonical url for this target.
-     */
-    val url: HttpUrl
+    return getTargetFor(httpUrl)
+}
+
+sealed interface ShareTarget {
+    sealed interface Valid : ShareTarget {
+        /**
+         * Get the canonical url for this target.
+         */
+        val url: HttpUrl
+
+        fun asResult() = Parsing.Result(this)
+    }
+}
+
+sealed interface YouTubeParsingError : Parsing.Error {
+    object NoVideoId : YouTubeParsingError
+    object IsChannel : YouTubeParsingError
+    object IsPlaylist : YouTubeParsingError
+    object NoPath : YouTubeParsingError
+    object UnknownPath : YouTubeParsingError
 }
 
 enum class YouTubeVideoType {
@@ -21,14 +48,14 @@ enum class YouTubeVideoType {
     companion object {
         fun fromPathSegment(segment: String?): YouTubeVideoType =
             when (segment) {
-                "shorts" -> YouTubeVideoType.SHORTS
-                "live" -> YouTubeVideoType.LIVE
+                "shorts" -> SHORTS
+                "live" -> LIVE
                 else -> throw IllegalStateException("Unexpected path segment for YouTube video type: $segment")
             }
     }
 }
 
-data class YouTubeVideo(val videoId: String, val type: YouTubeVideoType = YouTubeVideoType.NORMAL) : ValidShareTarget {
+data class YouTubeVideo(val videoId: String, val type: YouTubeVideoType = YouTubeVideoType.NORMAL) : ShareTarget.Valid {
     init {
         require(videoId.isNotBlank()) { "Invalid video ID" }
     }
@@ -41,33 +68,44 @@ data class YouTubeVideo(val videoId: String, val type: YouTubeVideoType = YouTub
             .build()
 }
 
-fun getTargetFor(uri: HttpUrl): ShareTarget {
+fun getTargetFor(uri: HttpUrl): Parsing {
     val host = uri.host.lowercase()
 
     return when (host) {
         "www.youtube.com", "youtube.com" -> parseYouTubeLongLink(uri)
         "youtu.be" -> parseYouTubeShortLink(uri)
-        else -> UnknownShareTarget
+        else -> Parsing.Error.UnknownShareTarget
     }
 }
 
-private fun parseYouTubeShortLink(uri: HttpUrl): ShareTarget {
-    val videoId = uri.pathSegments.firstOrNull()?.takeIf { it.isNotBlank() } ?: throw IllegalArgumentException()
-    return YouTubeVideo(videoId)
+private fun parseYouTubeShortLink(uri: HttpUrl): Parsing {
+    return uri.pathSegments.firstOrNull()
+        ?.takeIf { it.isNotBlank() }
+        ?.let { videoId -> YouTubeVideo(videoId).asResult() }
+        ?: return YouTubeParsingError.NoVideoId
 }
 
-private fun parseYouTubeLongLink(uri: HttpUrl): ShareTarget {
-    val firstSegment = uri.pathSegments.firstOrNull()?.takeIf { it.isNotBlank() } ?: throw IllegalArgumentException()
+private fun parseYouTubeLongLink(uri: HttpUrl): Parsing {
+    val firstSegment = uri.pathSegments.firstOrNull()?.takeIf { it.isNotBlank() } ?: return YouTubeParsingError.NoPath
 
     return when (firstSegment) {
         "watch" -> {
-            val id = uri.queryParameter("v") ?: return UnknownShareTarget
-            YouTubeVideo(id, YouTubeVideoType.NORMAL)
+            uri.queryParameter("v")
+                ?.takeIf { it.isNotBlank() }
+                ?.let { videoId -> YouTubeVideo(videoId).asResult() }
+                ?: YouTubeParsingError.NoVideoId
         }
-        "live", "shorts" -> {
-            val id = uri.pathSegments.getOrNull(1)?.takeIf { it.isNotBlank() } ?: throw IllegalArgumentException()
-            YouTubeVideo(id, YouTubeVideoType.fromPathSegment(firstSegment))
+        "shorts", "live" -> {
+            uri.pathSegments.getOrNull(1)
+                ?.takeIf { it.isNotBlank() }
+                ?.let { videoId ->
+                    val type = YouTubeVideoType.fromPathSegment(firstSegment)
+                    YouTubeVideo(videoId, type).asResult()
+                }
+                ?: YouTubeParsingError.NoVideoId
         }
-        else -> UnknownShareTarget
+        "channel", "c" -> YouTubeParsingError.IsChannel
+        "playlist" -> YouTubeParsingError.IsPlaylist
+        else -> YouTubeParsingError.UnknownPath
     }
 }
