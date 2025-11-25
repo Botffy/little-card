@@ -1,3 +1,10 @@
 <resources>
     <string name="app_name">Little Card</string>
+    <string name="error_parsing_invalidurl">That does not look like a valid URL. Could you check again?</string>
+    <string name="error_parsing_unknownsharetarget">That URL doesn\'t look like something I can handle. Currently I can make cards only out of YouTube videos.</string>
+    <string name="error_parsing_novideoid">I couldn\'t find a video ID in that URL. Could you double-check it?</string>
+    <string name="error_parsing_ischannel">That URL points to a YouTube channel not a video. I can\'t make cards for channels yet.</string>
+    <string name="error_parsing_isplaylist">That URL points to a YouTube playlist not a video. I can\'t make cards for playlists yet.</string>
+    <string name="error_parsing_nopath">It looks like you just sent me the domain name. I need the full URL of a YouTube video to make a card.</string>
+    <string name="error_parsing_unknownpath">Sorry, I don\'t recognize this YouTube URL. Could you double-check or try a different link?</string>
 </resources>

@@ -75,8 +75,10 @@ dependencies {
 
     testImplementation(libs.junit.jupiter)
     testImplementation(libs.truth)
+    testImplementation("io.mockk:mockk-android:1.14.6")
     testImplementation(libs.mockwebserver3)
     testImplementation(libs.json) // android's own implementation is not available in tests
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

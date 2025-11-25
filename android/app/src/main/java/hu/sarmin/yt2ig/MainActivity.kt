@@ -15,7 +15,6 @@ import androidx.lifecycle.lifecycleScope
 import hu.sarmin.yt2ig.util.toHexRgb
 import kotlinx.coroutines.launch
 import okhttp3.HttpUrl
-import okhttp3.HttpUrl.Companion.toHttpUrl
 import java.io.File
 import java.io.FileOutputStream
 
@@ -34,7 +33,12 @@ class MainActivity : ComponentActivity() {
         RealYouTubeService(apiKey = BuildConfig.YOUTUBE_API_KEY)
     }
 
-    private val imageLoader: ImageLoader by lazy { ImageLoader(this) }
+    private val imageLoader: ImageLoader by lazy { RealImageLoader(this) }
+
+    val cardCreationService: CardCreationService by lazy { CardCreationService(youTubeService, imageLoader, Navigation(
+        navigateTo = { newState -> navigateTo(newState) },
+        replaceState = { oldState, newState -> replaceState(oldState, newState) }
+    ))}
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -60,7 +64,7 @@ class MainActivity : ComponentActivity() {
                 AppActions(
                     goHome = { goHome() },
                     onUrlEntered = { onUrlEntered(it) },
-                    shareToInstaStory = { shareToInstaStory(it.targetUrl, it.shareCard) },
+                    shareToInstaStory = { shareToInstaStory(it.target.url, it.shareCard) },
                     shareToOther = { shareToOther(it.shareCard) },
                     copyUrl = { target -> copyToClipboard(target.url.toString()) }
                 )
@@ -71,21 +75,17 @@ class MainActivity : ComponentActivity() {
     private fun onUrlEntered(maybeUrl: String) {
         // TODO Handle errors a lot better in yt2ig-18
 
-        val target: ShareTarget
-        try {
-            val url = maybeUrl.toHttpUrl()
-            target = getTargetFor(url)
-        } catch (e: IllegalArgumentException) {
-            Toast.makeText(this, "Invalid URL", Toast.LENGTH_LONG).show()
-            return
+        val target = when (val result = parse(maybeUrl)) {
+            is Parsing.Error -> {
+                Toast.makeText(this, result.toMessage(this), Toast.LENGTH_LONG).show()
+                return
+            }
+            is Parsing.Result -> {
+                result.target
+            }
         }
 
-        val state = share(target)
-        if (state is AppState.Error) {
-            Toast.makeText(this, state.message, Toast.LENGTH_LONG).show()
-        } else {
-            navigateTo(state)
-        }
+        share(target)
     }
 
     override fun onNewIntent(newIntent: Intent) {
@@ -95,54 +95,34 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun handleIntent(newIntent: Intent) {
-        val newState = getStateFrom(newIntent)
         this.navStack.clear()
-        navigateTo(newState)
-    }
-
-    private fun getStateFrom(intent: Intent?): AppState {
-        try {
-            val url = getUrlFrom(intent) ?: return AppState.Home
-            val target = getTargetFor(url.toHttpUrl())
-            return share(target)
-        } catch (e: IllegalArgumentException) {
-            return AppState.Error(e.message ?: "something went wrong")
-        }
-    }
-
-    private fun share(target: ShareTarget): AppState {
-        // TODO this will get more generic, I promise
-        // TODO make this a lot better in yt2ig-18 (but it'll do for now)
-        if (target !is YouTubeVideo) {
-            return AppState.Error("Unsupported share target")
+        val maybeUrl = getUrlFrom(newIntent)
+        if (maybeUrl == null) {
+            navigateTo(AppState.Home)
+            return
         }
 
-        val state = AppState.Share(target, AppState.Share.LoadingState.Starting)
+        when (val result = parse(maybeUrl))  {
+            is Parsing.Error -> {
+                navigateTo(AppState.Error(result.toMessage(this)))
+            }
 
-        lifecycleScope.launch {
-            try {
-                val videoInfo = youTubeService.getVideoInfo(target.videoId)
-                val loadedInfoState = AppState.Share(target, AppState.Share.LoadingState.LoadedInfo(videoInfo))
-                replaceState(state, loadedInfoState)
-
-                imageLoader.ensureLoaded(videoInfo.thumbnailUrl)
-                val loadedThumbnailState = AppState.Share(target, AppState.Share.LoadingState.LoadedThumbnail(videoInfo))
-                replaceState(loadedInfoState, loadedThumbnailState)
-
-                val shareCard = generateCard(videoInfo, imageLoader)
-                val createdState = AppState.Share(
-                    target,
-                    AppState.Share.LoadingState.Created(videoInfo, target.url, shareCard)
-                )
-                replaceState(loadedThumbnailState, createdState)
-
-            } catch (e: Exception) {
-                val errorState = AppState.Error(e.message ?: "something went wrong")
-                replaceState(state, errorState)
+            is Parsing.Result -> {
+                share(result.target)
             }
         }
+    }
 
-        return state
+    private fun share(target: ShareTarget) {
+        // TODO this will get more generic, I promise
+        if (target !is YouTubeVideo) {
+            navigateTo(AppState.Error(getString(R.string.error_parsing_unknownsharetarget)))
+            return
+        }
+
+        lifecycleScope.launch {
+            cardCreationService.createCard(target)
+        }
     }
 
     private fun navigateTo(newState: AppState) = this.navStack.add(newState)
@@ -154,9 +134,7 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    fun goHome() {
-        this.navStack.add(AppState.Home)
-    }
+    fun goHome() = this.navStack.add(AppState.Home)
 
     private fun shareToInstaStory(url: HttpUrl, card: ShareCard) {
         val uri = writeFileToCache(card.image)
