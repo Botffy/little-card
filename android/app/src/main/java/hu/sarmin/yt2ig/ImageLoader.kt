@@ -1,31 +1,18 @@
 package hu.sarmin.yt2ig
 
-import android.content.Context
+import hu.sarmin.yt2ig.util.HttpClientProvider
 import hu.sarmin.yt2ig.util.await
-import hu.sarmin.yt2ig.util.getHttpClient
 import okhttp3.HttpUrl
 import java.io.IOException
+import java.util.concurrent.ConcurrentHashMap
 
 interface ImageLoader {
-    enum class PresetImageId {
-        YOUTUBE_LOGO,
-    }
-
     suspend fun fetchImage(url: HttpUrl): ByteArray
     suspend fun ensureLoaded(url: HttpUrl)
-    fun fetchPresetImage(id: ImageLoader.PresetImageId): ByteArray
 }
 
-class RealImageLoader(context: Context): ImageLoader {
-    private val cache = mutableMapOf<String, ByteArray>()
-
-    init {
-        cache[ImageLoader.PresetImageId.YOUTUBE_LOGO.name] = context.assets.open("logos/yt_icon_red_digital.png").readBytes()
-    }
-
-    override fun fetchPresetImage(id: ImageLoader.PresetImageId): ByteArray {
-        return cache[id.name]!!
-    }
+class RealImageLoader(private val httpClientProvider: HttpClientProvider): ImageLoader {
+    private val cache = ConcurrentHashMap<String, ByteArray>()
 
     override suspend fun fetchImage(url: HttpUrl): ByteArray {
         val id = url.toString()
@@ -50,7 +37,7 @@ class RealImageLoader(context: Context): ImageLoader {
             .url(url)
             .build()
 
-        getHttpClient().await(request).use { response ->
+        httpClientProvider.getClient().await(request).use { response ->
             if (!response.isSuccessful) {
                 throw IOException("Image download error ${response.code}, ${response.message}")
             }

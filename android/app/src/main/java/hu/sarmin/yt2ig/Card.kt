@@ -23,12 +23,14 @@ private const val MIN_CARD_WIDTH = 800
 
 suspend fun generateCard(
     videoInfo: YouTubeVideoInfo,
-    imageLoader: ImageLoader
-): ShareCard = CardGenerator(videoInfo, imageLoader).generate()
+    imageLoader: ImageLoader,
+    imageStore: ImageStore,
+): ShareCard = CardGenerator(videoInfo, imageLoader, imageStore).generate()
 
 private class CardGenerator(
     private val videoInfo: YouTubeVideoInfo,
-    private val imageLoader: ImageLoader
+    private val imageLoader: ImageLoader,
+    private val imageStore: ImageStore,
 ) {
     // Calculated dimensions (set after loading thumbnail)
     private var cardWidth: Int = 0
@@ -97,7 +99,7 @@ private class CardGenerator(
     }
 
     private fun loadLogo(): Bitmap {
-        val logoBytes = imageLoader.fetchPresetImage(ImageLoader.PresetImageId.YOUTUBE_LOGO)
+        val logoBytes = imageStore.fetchPresetImage(ImageStore.PresetImageId.YOUTUBE_LOGO)
         return BitmapFactory.decodeByteArray(logoBytes, 0, logoBytes.size)
             ?: throw IllegalStateException("Failed to decode YouTube logo")
     }

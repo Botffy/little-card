@@ -12,6 +12,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.mutableStateListOf
 import androidx.core.content.FileProvider
 import androidx.lifecycle.lifecycleScope
+import hu.sarmin.yt2ig.util.DefaultHttpClientProvider
 import hu.sarmin.yt2ig.util.toHexRgb
 import kotlinx.coroutines.launch
 import okhttp3.HttpUrl
@@ -30,12 +31,13 @@ class MainActivity : ComponentActivity() {
     private val navStack = mutableStateListOf<AppState>()
 
     private val youTubeService: YouTubeService by lazy {
-        RealYouTubeService(apiKey = BuildConfig.YOUTUBE_API_KEY)
+        RealYouTubeService(DefaultHttpClientProvider(), apiKey = BuildConfig.YOUTUBE_API_KEY)
     }
 
-    private val imageLoader: ImageLoader by lazy { RealImageLoader(this) }
+    private val imageLoader: ImageLoader by lazy { RealImageLoader(DefaultHttpClientProvider()) }
+    private val imageStore: ImageStore by lazy { DefaultImageStore(this) }
 
-    val cardCreationService: CardCreationService by lazy { CardCreationService(youTubeService, imageLoader, Navigation(
+    val cardCreationService: CardCreationService by lazy { CardCreationService(youTubeService, imageLoader, imageStore, Navigation(
         navigateTo = { newState -> navigateTo(newState) },
         replaceState = { oldState, newState -> replaceState(oldState, newState) }
     ))}
