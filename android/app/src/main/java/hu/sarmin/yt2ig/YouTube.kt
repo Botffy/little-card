@@ -1,7 +1,7 @@
 package hu.sarmin.yt2ig
 
+import hu.sarmin.yt2ig.util.HttpClientProvider
 import hu.sarmin.yt2ig.util.await
-import hu.sarmin.yt2ig.util.getHttpClient
 import hu.sarmin.yt2ig.util.getStringOrNull
 import okhttp3.HttpUrl
 import okhttp3.HttpUrl.Companion.toHttpUrl
@@ -21,9 +21,9 @@ interface YouTubeService {
     suspend fun getVideoInfo(videoId: String): YouTubeVideoInfo
 }
 
-class RealYouTubeService(private val apiKey: String, private val apiEndpoint: String = YOUTUBE_API_URL) : YouTubeService {
+class RealYouTubeService(private val httpClientProvider: HttpClientProvider, private val apiKey: String) : YouTubeService {
     override suspend fun getVideoInfo(videoId: String): YouTubeVideoInfo {
-        val url = apiEndpoint.toHttpUrl()
+        val url = YOUTUBE_API_URL.toHttpUrl()
             .newBuilder()
             .addPathSegment("videos")
             .addQueryParameter("part", "snippet,contentDetails")
@@ -35,7 +35,7 @@ class RealYouTubeService(private val apiKey: String, private val apiEndpoint: St
             .addHeader("X-Goog-Api-Key", apiKey)
             .build()
 
-        getHttpClient().await(request).use { response ->
+        httpClientProvider.getClient().await(request).use { response ->
             if (!response.isSuccessful) {
                 throw IOException("YT API error ${response.code}, ${response.message}")
             }

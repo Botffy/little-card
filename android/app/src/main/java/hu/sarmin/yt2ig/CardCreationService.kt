@@ -8,7 +8,12 @@ data class Navigation(
     val replaceState: (AppState, AppState) -> Unit
 )
 
-class CardCreationService(private val youTubeService: YouTubeService, private val imageLoader: ImageLoader, private val navigation: Navigation) {
+class CardCreationService(
+    private val youTubeService: YouTubeService,
+    private val imageLoader: ImageLoader,
+    private val imageStore: ImageStore,
+    private val navigation: Navigation
+) {
 
     private val sequence = listOf(
         ::getInfo,
@@ -53,7 +58,7 @@ class CardCreationService(private val youTubeService: YouTubeService, private va
 
     private suspend fun createCard(currentState: LoadingState): LoadingState {
         require(currentState is LoadingState.LoadedThumbnail)
-        val shareCard = generateCard(currentState.data, imageLoader)
+        val shareCard = generateCard(currentState.data, imageLoader, imageStore)
         return LoadingState.Created(currentState.target, currentState.data, shareCard)
     }
 }
