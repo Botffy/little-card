@@ -7,4 +7,5 @@
     <string name="error_parsing_isplaylist">That URL points to a YouTube playlist not a video. I can\'t make cards for playlists yet.</string>
     <string name="error_parsing_nopath">It looks like you just sent me the domain name. I need the full URL of a YouTube video to make a card.</string>
     <string name="error_parsing_unknownpath">Sorry, I don\'t recognize this YouTube URL. Could you double-check or try a different link?</string>
+    <string name="error_any">Something unexpected happened: %s</string>
 </resources>

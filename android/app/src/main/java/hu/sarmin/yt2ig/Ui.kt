@@ -1,5 +1,6 @@
 package hu.sarmin.yt2ig
 
+import android.content.Context
 import androidx.compose.animation.Crossfade
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -22,7 +23,7 @@ val LocalAppActions = staticCompositionLocalOf<AppActions> {
 }
 
 @Composable
-fun App(value: AppState, functions: AppActions) {
+fun App(value: AppState, functions: AppActions, getContext: () -> Context) {
     CompositionLocalProvider(LocalAppActions provides functions) {
         val stateName = when (value) {
             is AppState.Home -> "Home"
@@ -35,7 +36,7 @@ fun App(value: AppState, functions: AppActions) {
                 when (value) {
                     is AppState.Home -> HomeScreen()
                     is AppState.Share -> SharingScreen(value.shareTarget, value.loading)
-                    is AppState.Error -> ErrorScreen(value.message, functions.goHome)
+                    is AppState.Error -> ErrorScreen(value.error.toMessage(getContext()), functions.goHome)
                 }
             }
         }

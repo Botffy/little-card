@@ -12,5 +12,5 @@ sealed interface AppState {
             data class Created(val target: YouTubeVideo, val data: YouTubeVideoInfo, val shareCard: ShareCard) : LoadingState
         }
     }
-    data class Error(val message: String) : AppState
+    data class Error(val error: ErrorMessage, val params: List<String> = emptyList()) : AppState
 }

@@ -69,7 +69,8 @@ class MainActivity : ComponentActivity() {
                     shareToInstaStory = { shareToInstaStory(it.target.url, it.shareCard) },
                     shareToOther = { shareToOther(it.shareCard) },
                     copyUrl = { target -> copyToClipboard(target.url.toString()) }
-                )
+                ),
+                getContext = { this }
             )
         }
     }
@@ -79,7 +80,7 @@ class MainActivity : ComponentActivity() {
 
         val target = when (val result = parse(maybeUrl)) {
             is Parsing.Error -> {
-                Toast.makeText(this, result.toMessage(this), Toast.LENGTH_LONG).show()
+                Toast.makeText(this, result.errorCode.toMessage(this), Toast.LENGTH_LONG).show()
                 return
             }
             is Parsing.Result -> {
@@ -106,7 +107,7 @@ class MainActivity : ComponentActivity() {
 
         when (val result = parse(maybeUrl))  {
             is Parsing.Error -> {
-                navigateTo(AppState.Error(result.toMessage(this)))
+                navigateTo(AppState.Error(result.errorCode))
             }
 
             is Parsing.Result -> {
@@ -118,7 +119,7 @@ class MainActivity : ComponentActivity() {
     private fun share(target: ShareTarget) {
         // TODO this will get more generic, I promise
         if (target !is YouTubeVideo) {
-            navigateTo(AppState.Error(getString(R.string.error_parsing_unknownsharetarget)))
+            navigateTo(AppState.Error(ErrorMessage("error_parsing_unknownsharetarget")))
             return
         }
 

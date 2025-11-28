@@ -37,7 +37,7 @@ class CardCreationService(
             } catch (e: Exception) {
                 navigation.replaceState(
                     AppState.Share(target, currentState),
-                    AppState.Error("Error: ${e.message ?: e::class.simpleName}")
+                    AppState.Error(ErrorMessage(e))
                 )
                 return
             }
