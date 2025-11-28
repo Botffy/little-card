@@ -13,6 +13,7 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.core.content.FileProvider
 import androidx.lifecycle.lifecycleScope
 import hu.sarmin.yt2ig.util.DefaultHttpClientProvider
+import hu.sarmin.yt2ig.util.hasInternet
 import hu.sarmin.yt2ig.util.toHexRgb
 import kotlinx.coroutines.launch
 import okhttp3.HttpUrl
@@ -80,7 +81,7 @@ class MainActivity : ComponentActivity() {
 
         val target = when (val result = parse(maybeUrl)) {
             is Parsing.Error -> {
-                Toast.makeText(this, result.errorCode.toMessage(this), Toast.LENGTH_LONG).show()
+                Toast.makeText(this, result.errorMessage.toMessage(this), Toast.LENGTH_LONG).show()
                 return
             }
             is Parsing.Result -> {
@@ -107,7 +108,7 @@ class MainActivity : ComponentActivity() {
 
         when (val result = parse(maybeUrl))  {
             is Parsing.Error -> {
-                navigateTo(AppState.Error(result.errorCode))
+                navigateTo(AppState.Error(result.errorMessage))
             }
 
             is Parsing.Result -> {
@@ -120,6 +121,11 @@ class MainActivity : ComponentActivity() {
         // TODO this will get more generic, I promise
         if (target !is YouTubeVideo) {
             navigateTo(AppState.Error(ErrorMessage("error_parsing_unknownsharetarget")))
+            return
+        }
+
+        if (!this.hasInternet()) {
+            navigateTo(AppState.Error(ErrorMessage("error_no_network")))
             return
         }
 

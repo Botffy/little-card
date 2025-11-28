@@ -8,7 +8,7 @@ sealed interface Parsing {
         object InvalidUrl : Error
         object UnknownShareTarget : Error
 
-        val errorCode: ErrorMessage
+        val errorMessage: ErrorMessage
             get() = ErrorMessage("error_parsing_${this::class.simpleName!!.lowercase()}")
     }
     data class Result(val target: ShareTarget.Valid) : Parsing

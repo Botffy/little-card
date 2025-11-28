@@ -6,7 +6,7 @@ data class ErrorMessage(val code: String, val params: List<String> = emptyList()
     fun toMessage(context: Context): String {
         val identifier = context.resources.getIdentifier(this.code, "string", context.packageName)
         return if (identifier != 0) {
-            context.getString(identifier, params)
+            context.getString(identifier, *params.toTypedArray())
         } else {
             "Unknown error: ${this.code}"
         }
