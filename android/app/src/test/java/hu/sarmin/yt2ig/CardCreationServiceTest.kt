@@ -8,9 +8,12 @@ import io.mockk.coEvery
 import io.mockk.mockk
 import io.mockk.mockkStatic
 import kotlinx.coroutines.runBlocking
+import mockwebserver3.MockResponse
 import mockwebserver3.MockWebServer
+import okhttp3.HttpUrl
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import java.util.concurrent.TimeUnit
 
 class CardCreationServiceTest {
     private val appState = FakeNavigation()
@@ -51,7 +54,7 @@ class CardCreationServiceTest {
                 assertThat(it).isInstanceOf(AppState.Share::class.java)
                 val shareState = it as AppState.Share
 
-                assertState<AppState.Share.LoadingState.Created>(shareState) { createdState ->
+                assertShareState<AppState.Share.LoadingState.Created>(shareState) { createdState ->
                     assertThat(createdState.target.videoId).isEqualTo(EXISTING_VIDEO_ID)
                     assertThat(createdState.shareCard).isEqualTo(dummyShareCard)
                 }
@@ -59,8 +62,67 @@ class CardCreationServiceTest {
         }
     }
 
-    inline fun <reified T : AppState.Share.LoadingState> assertState(actual: AppState.Share, noinline block: (T) -> Unit) {
+    @Test
+    fun `nonexistent ID leads to error`() {
+        MockWebServer().withDispatcher(YouTubeSimulator()) { _, httpClientProvider ->
+            val service = service(httpClientProvider)
+
+            runBlocking {
+                service.createCard(YouTubeVideo("non-existing-video-id"))
+            }
+
+            assertThat(appState.navStack.size).isEqualTo(1)
+            assertError(appState.navStack[0], YouTubeCardCreationError.VideoInfoNotFound)
+        }
+    }
+
+    @Test
+    fun `thumbnail not found leads to error`() {
+        MockWebServer().withDispatcher(object : YouTubeSimulator() {
+            override fun getThumbnail(url: HttpUrl): MockResponse {
+                return MockResponse().newBuilder().code(404).build()
+            }
+        }) { _, httpClientProvider ->
+            val service = service(httpClientProvider)
+
+            runBlocking {
+                service.createCard(YouTubeVideo(EXISTING_VIDEO_ID))
+            }
+
+            assertThat(appState.navStack.size).isEqualTo(1)
+            assertError(appState.navStack[0], ImageLoaderError.ImageDownloadFailed)
+        }
+    }
+
+    @Test
+    fun `YouTube timeouting`() {
+        MockWebServer().withDispatcher(object : YouTubeSimulator() {
+            override fun getVideo(videoId: String): MockResponse {
+                return MockResponse().newBuilder().headersDelay(31, TimeUnit.SECONDS).build()
+            }
+        }) { _, httpClientProvider ->
+            val service = service(httpClientProvider)
+
+            runBlocking {
+                service.createCard(YouTubeVideo(EXISTING_VIDEO_ID))
+            }
+
+            assertThat(appState.navStack.size).isEqualTo(1)
+            assertError(appState.navStack[0], ErrorMessage("error_network_timeout"))
+        }
+    }
+
+    inline fun <reified T : AppState.Share.LoadingState> assertShareState(actual: AppState.Share, noinline block: (T) -> Unit) {
         assertThat(actual.loading).isInstanceOf(T::class.java)
         block(actual.loading as T)
+    }
+
+    fun assertError(state: AppState, expected: ErrorMessage) {
+        assertThat(state).isInstanceOf(AppState.Error::class.java)
+        val errorState = state as AppState.Error
+        assertThat(errorState.error).isEqualTo(expected)
+    }
+    fun assertError(state: AppState, expected: CardCreationError) {
+        assertError(state, expected.errorMessage)
     }
 }

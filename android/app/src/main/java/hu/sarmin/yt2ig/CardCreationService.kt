@@ -1,12 +1,23 @@
 package hu.sarmin.yt2ig
 
 import hu.sarmin.yt2ig.AppState.Share.LoadingState
+import java.net.ConnectException
+import java.net.SocketTimeoutException
+import java.net.UnknownHostException
 
 
 data class Navigation(
     val navigateTo: (AppState) -> Unit,
     val replaceState: (AppState, AppState) -> Unit
 )
+
+interface CardCreationError {
+    fun code(): String
+    val errorMessage: ErrorMessage
+        get() = ErrorMessage(code())
+}
+
+data class CardCreationException(val error: CardCreationError) : Exception(error.code())
 
 class CardCreationService(
     private val youTubeService: YouTubeService,
@@ -35,9 +46,17 @@ class CardCreationService(
                     currentState = newState
                 }
             } catch (e: Exception) {
+                val errorMessage = when (e) {
+                    is CardCreationException -> e.error.errorMessage
+                    is SocketTimeoutException -> ErrorMessage("error_network_timeout")
+                    is UnknownHostException -> ErrorMessage("error_network_unreachable")
+                    is ConnectException -> ErrorMessage("error_network_unreachable")
+                    else -> ErrorMessage(e)
+                }
+
                 navigation.replaceState(
                     AppState.Share(target, currentState),
-                    AppState.Error("Error: ${e.message ?: e::class.simpleName}")
+                    AppState.Error(errorMessage)
                 )
                 return
             }

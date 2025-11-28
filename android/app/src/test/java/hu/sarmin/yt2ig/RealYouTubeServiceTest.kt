@@ -29,7 +29,7 @@ class RealYouTubeServiceTest {
     fun `getVideoInfo throws exception for non-existing video id`() {
         MockWebServer().withDispatcher(dispatcher) { _, clientProvider  ->
             val service = RealYouTubeService(clientProvider, TEST_API_KEY)
-            assertThrows<IllegalArgumentException> { runBlocking { service.getVideoInfo("nonesuch") } }
+            assertThrows<CardCreationException> { runBlocking { service.getVideoInfo("nonesuch") } }
         }
     }
 }
