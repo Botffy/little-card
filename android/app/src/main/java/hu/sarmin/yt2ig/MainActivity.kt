@@ -3,6 +3,7 @@ package hu.sarmin.yt2ig
 import android.content.Intent
 import android.graphics.Bitmap
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
@@ -218,6 +219,10 @@ class MainActivity : ComponentActivity() {
         val clip = android.content.ClipData.newPlainText("Video URL", url)
         clipboard.setPrimaryClip(clip)
 
-        Toast.makeText(this, "Copied to clipboard", Toast.LENGTH_SHORT).show()
+        // Only show a toast for Android 12 and lower.
+        // Android 13+ shows a system notification when content is copied.
+        if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.S_V2) {
+            Toast.makeText(this, "Copied to clipboard", Toast.LENGTH_SHORT).show()
+        }
     }
 }
