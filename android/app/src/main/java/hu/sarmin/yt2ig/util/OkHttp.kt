@@ -7,11 +7,24 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.Response
 import java.io.IOException
+import java.util.concurrent.TimeUnit
 import kotlin.coroutines.resume
 
 private val HTTP_CLIENT = OkHttpClient()
+    .newBuilder()
+    .connectTimeout(5, TimeUnit.SECONDS)
+    .readTimeout(5, TimeUnit.SECONDS)
+    .writeTimeout(5, TimeUnit.SECONDS)
+    .callTimeout(10, TimeUnit.SECONDS)
+    .build()
 
-fun getHttpClient(): OkHttpClient = HTTP_CLIENT
+interface HttpClientProvider {
+    fun getClient(): OkHttpClient
+}
+
+class DefaultHttpClientProvider : HttpClientProvider {
+    override fun getClient(): OkHttpClient = HTTP_CLIENT
+}
 
 suspend fun OkHttpClient.await(request: Request): Response =
     suspendCancellableCoroutine { cont ->
