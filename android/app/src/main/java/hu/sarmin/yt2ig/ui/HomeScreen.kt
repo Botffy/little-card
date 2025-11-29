@@ -13,9 +13,10 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TextField
+import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -30,7 +31,11 @@ import androidx.compose.ui.text.withLink
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
+import hu.sarmin.yt2ig.ErrorMessage
 import hu.sarmin.yt2ig.LocalAppActions
+import hu.sarmin.yt2ig.Parsing
+import hu.sarmin.yt2ig.ShareTarget
+import hu.sarmin.yt2ig.YouTubeVideo
 import hu.sarmin.yt2ig.ui.theme.Yt2igTheme
 import hu.sarmin.yt2ig.ui.util.PreviewScreenElement
 
@@ -43,7 +48,7 @@ fun HomeScreen() {
             Modifier.padding(padding)
         ) {
             Intro()
-            UrlInput(actions.onUrlEntered)
+            UrlInput(actions.parse, actions.share, actions.toMessage)
 
             Column {
                 About()
@@ -61,20 +66,37 @@ private fun PreviewHomeScreen() {
     }
 }
 
-@Composable
-private fun Hi(style: TextStyle, color: Color) {
+@Composable fun TextWithEmoji(
+    text: String,
+    emoji: String = "✨",
+    style: TextStyle = MaterialTheme.typography.bodyMedium,
+    color: Color = MaterialTheme.colorScheme.onSurface,
+) {
     Text(
         buildAnnotatedString {
             withStyle(
                 style = style.toSpanStyle()
                     .copy(color = color.copy(alpha = if (isSystemInDarkTheme()) 0.6f else 1f))
-            ) { append("✨") }
+            ) { append(emoji) }
 
             withStyle(
                 style = style.toSpanStyle()
                     .copy(color = color)
-            ) { append(" Hi!") }
+            ) {
+                append(" ")
+                append(text)
+            }
         }
+    )
+}
+
+@Composable
+private fun Hi(style: TextStyle, color: Color) {
+    TextWithEmoji(
+        text = "Hi!",
+        emoji = "✨",
+        style = style,
+        color = color,
     )
 }
 
@@ -115,7 +137,11 @@ private fun PreviewIntro() {
 }
 
 @Composable
-private fun UrlInput(onUrlEntered: (maybeUrl: String) -> Unit = {}) {
+private fun UrlInput(
+    parse: (maybeUrl: String) -> Parsing = { Parsing.Result(YouTubeVideo("dummy")) },
+    share: (ShareTarget.Valid) -> Unit = {},
+    toMessage: (ErrorMessage) -> String = { it.code },
+) {
     val text = remember {
         mutableStateOf("")
     }
@@ -139,24 +165,59 @@ private fun UrlInput(onUrlEntered: (maybeUrl: String) -> Unit = {}) {
                 color = MaterialTheme.colorScheme.primary
             )
 
-            OutlinedTextField(
+            val error = remember {
+                mutableStateOf(null as Pair<String, Parsing.Error>?)
+            }
+
+            TextField(
                 modifier = Modifier
                     .fillMaxWidth(),
                 enabled = true,
                 value = text.value,
-                onValueChange = { text.value = it },
+                onValueChange = {
+                    text.value = it
+                    if (error.value?.first != it) {
+                        error.value = null
+                    }
+                },
                 placeholder = {
                     Text("https://youtu.be/...")
                 },
                 singleLine = true,
+                colors = if (error.value != null) {
+                    TextFieldDefaults.colors(
+                        focusedIndicatorColor = MaterialTheme.colorScheme.outlineVariant,
+                        unfocusedIndicatorColor = MaterialTheme.colorScheme.outlineVariant,
+                    )
+                } else {
+                    TextFieldDefaults.colors()
+                }
             )
+
+            error.value?.let { value ->
+                Spacer(
+                    modifier = Modifier.height(6.dp)
+                )
+                TextWithEmoji(
+                    text =  toMessage(value.second.errorMessage),
+                    emoji = "⚠️",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.error
+                )
+            }
 
             Button(
                 onClick = {
                     if (text.value.isNotBlank()) {
-                        onUrlEntered(text.value.trim())
+                        when (val parsing = parse(text.value.trim())) {
+                            is Parsing.Result -> {
+                                share(parsing.target)
+                            }
+                            is Parsing.Error -> {
+                                error.value = text.value to parsing
+                            }
+                        }
                     }
-
                 },
                 modifier = Modifier.align(Alignment.End),
                 enabled = text.value.isNotBlank()
