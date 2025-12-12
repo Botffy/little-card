@@ -1,6 +1,5 @@
 package hu.sarmin.yt2ig.ui
 
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -9,18 +8,12 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TextField
-import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.LinkAnnotation
@@ -31,11 +24,9 @@ import androidx.compose.ui.text.withLink
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
-import hu.sarmin.yt2ig.ErrorMessage
 import hu.sarmin.yt2ig.LocalAppActions
-import hu.sarmin.yt2ig.Parsing
-import hu.sarmin.yt2ig.ShareTarget
-import hu.sarmin.yt2ig.YouTubeVideo
+import hu.sarmin.yt2ig.ui.common.TextWithEmoji
+import hu.sarmin.yt2ig.ui.common.UrlInput
 import hu.sarmin.yt2ig.ui.theme.Yt2igTheme
 import hu.sarmin.yt2ig.ui.util.PreviewScreenElement
 
@@ -48,7 +39,13 @@ fun HomeScreen() {
             Modifier.padding(padding)
         ) {
             Intro()
-            UrlInput(actions.parse, actions.share, actions.toMessage)
+            UrlInput(
+                label = "Paste a YouTube link!",
+                buttonLabel = "Make my card",
+                parse = actions.parse,
+                share = actions.share,
+                errorMessageConverter = actions.toMessage
+            )
 
             Column {
                 About()
@@ -64,30 +61,6 @@ private fun PreviewHomeScreen() {
     Yt2igTheme {
         HomeScreen()
     }
-}
-
-@Composable fun TextWithEmoji(
-    text: String,
-    emoji: String = "✨",
-    style: TextStyle = MaterialTheme.typography.bodyMedium,
-    color: Color = MaterialTheme.colorScheme.onSurface,
-) {
-    Text(
-        buildAnnotatedString {
-            withStyle(
-                style = style.toSpanStyle()
-                    .copy(color = color.copy(alpha = if (isSystemInDarkTheme()) 0.6f else 1f))
-            ) { append(emoji) }
-
-            withStyle(
-                style = style.toSpanStyle()
-                    .copy(color = color)
-            ) {
-                append(" ")
-                append(text)
-            }
-        }
-    )
 }
 
 @Composable
@@ -133,106 +106,6 @@ private fun Intro() {
 private fun PreviewIntro() {
     PreviewScreenElement {
         Intro()
-    }
-}
-
-@Composable
-private fun UrlInput(
-    parse: (maybeUrl: String) -> Parsing = { Parsing.Result(YouTubeVideo("dummy")) },
-    share: (ShareTarget.Valid) -> Unit = {},
-    toMessage: (ErrorMessage) -> String = { it.code },
-) {
-    val text = remember {
-        mutableStateOf("")
-    }
-
-    Card(
-        modifier = Modifier
-            .padding(bottom = 8.dp)
-            .fillMaxWidth(),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
-    ) {
-        Column(
-            modifier = Modifier
-                .padding(16.dp)
-                .fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-
-            Text(
-                text = "Paste a YouTube link!",
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.primary
-            )
-
-            val error = remember {
-                mutableStateOf(null as Pair<String, Parsing.Error>?)
-            }
-
-            TextField(
-                modifier = Modifier
-                    .fillMaxWidth(),
-                enabled = true,
-                value = text.value,
-                onValueChange = {
-                    text.value = it
-                    if (error.value?.first != it) {
-                        error.value = null
-                    }
-                },
-                placeholder = {
-                    Text("https://youtu.be/...")
-                },
-                singleLine = true,
-                colors = if (error.value != null) {
-                    TextFieldDefaults.colors(
-                        focusedIndicatorColor = MaterialTheme.colorScheme.outlineVariant,
-                        unfocusedIndicatorColor = MaterialTheme.colorScheme.outlineVariant,
-                    )
-                } else {
-                    TextFieldDefaults.colors()
-                }
-            )
-
-            error.value?.let { value ->
-                Spacer(
-                    modifier = Modifier.height(6.dp)
-                )
-                TextWithEmoji(
-                    text =  toMessage(value.second.errorMessage),
-                    emoji = "⚠️",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.error
-                )
-            }
-
-            Button(
-                onClick = {
-                    if (text.value.isNotBlank()) {
-                        when (val parsing = parse(text.value.trim())) {
-                            is Parsing.Result -> {
-                                share(parsing.target)
-                            }
-                            is Parsing.Error -> {
-                                error.value = text.value to parsing
-                            }
-                        }
-                    }
-                },
-                modifier = Modifier.align(Alignment.End),
-                enabled = text.value.isNotBlank()
-            ) {
-                Text("Make my card")
-            }
-        }
-    }
-}
-
-@PreviewLightDark
-@Composable
-private fun PreviewUrlInput() {
-    PreviewScreenElement {
-        UrlInput()
     }
 }
 

@@ -38,7 +38,7 @@ fun App(value: AppState, functions: AppActions, getContext: () -> Context) {
                 when (value) {
                     is AppState.Home -> HomeScreen()
                     is AppState.Share -> SharingScreen(value.shareTarget, value.loading)
-                    is AppState.Error -> ErrorScreen(value.error.toMessage(getContext()), functions.goHome)
+                    is AppState.Error -> ErrorScreen(value.error.toMessage(getContext()), value.rawInput, functions.goHome)
                 }
             }
         }

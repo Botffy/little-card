@@ -94,7 +94,7 @@ class MainActivity : ComponentActivity() {
 
         when (val result = parse(maybeUrl))  {
             is Parsing.Error -> {
-                navigateTo(AppState.Error(result.errorMessage))
+                navigateTo(AppState.Error(result.errorMessage, maybeUrl))
             }
 
             is Parsing.Result -> {
@@ -106,12 +106,12 @@ class MainActivity : ComponentActivity() {
     private fun share(target: ShareTarget.Valid) {
         // TODO this will get more generic, I promise
         if (target !is YouTubeVideo) {
-            navigateTo(AppState.Error(ErrorMessage("error_parsing_unknownsharetarget")))
+            navigateTo(AppState.Error(ErrorMessage("error_parsing_unknownsharetarget"), target.url.toString()))
             return
         }
 
         if (!this.hasInternet()) {
-            navigateTo(AppState.Error(ErrorMessage("error_no_network")))
+            navigateTo(AppState.Error(ErrorMessage("error_no_network"), target.url.toString()))
             return
         }
 
