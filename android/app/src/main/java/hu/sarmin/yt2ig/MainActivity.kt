@@ -12,10 +12,11 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.mutableStateListOf
 import androidx.core.content.FileProvider
 import androidx.lifecycle.lifecycleScope
+import hu.sarmin.yt2ig.util.DefaultHttpClientProvider
+import hu.sarmin.yt2ig.util.hasInternet
 import hu.sarmin.yt2ig.util.toHexRgb
 import kotlinx.coroutines.launch
 import okhttp3.HttpUrl
-import okhttp3.HttpUrl.Companion.toHttpUrl
 import java.io.File
 import java.io.FileOutputStream
 
@@ -31,10 +32,16 @@ class MainActivity : ComponentActivity() {
     private val navStack = mutableStateListOf<AppState>()
 
     private val youTubeService: YouTubeService by lazy {
-        RealYouTubeService(apiKey = BuildConfig.YOUTUBE_API_KEY)
+        RealYouTubeService(DefaultHttpClientProvider(), apiKey = BuildConfig.YOUTUBE_API_KEY)
     }
 
-    private val imageLoader: ImageLoader by lazy { ImageLoader(this) }
+    private val imageLoader: ImageLoader by lazy { RealImageLoader(DefaultHttpClientProvider()) }
+    private val imageStore: ImageStore by lazy { DefaultImageStore(this) }
+
+    val cardCreationService: CardCreationService by lazy { CardCreationService(youTubeService, imageLoader, imageStore, Navigation(
+        navigateTo = { newState -> navigateTo(newState) },
+        replaceState = { oldState, newState -> replaceState(oldState, newState) }
+    ))}
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -59,32 +66,15 @@ class MainActivity : ComponentActivity() {
                 this.navStack.lastOrNull() ?: AppState.Home,
                 AppActions(
                     goHome = { goHome() },
-                    onUrlEntered = { onUrlEntered(it) },
-                    shareToInstaStory = { shareToInstaStory(it.targetUrl, it.shareCard) },
+                    parse = { parse(it) },
+                    share = { share(it) },
+                    shareToInstaStory = { shareToInstaStory(it.target.url, it.shareCard) },
                     shareToOther = { shareToOther(it.shareCard) },
-                    copyUrl = { target -> copyToClipboard(target.url.toString()) }
-                )
+                    copyUrl = { target -> copyToClipboard(target.url.toString()) },
+                    toMessage = { errorMessage -> errorMessage.toMessage(this) }
+                ),
+                getContext = { this }
             )
-        }
-    }
-
-    private fun onUrlEntered(maybeUrl: String) {
-        // TODO Handle errors a lot better in yt2ig-18
-
-        val target: ShareTarget
-        try {
-            val url = maybeUrl.toHttpUrl()
-            target = getTargetFor(url)
-        } catch (e: IllegalArgumentException) {
-            Toast.makeText(this, "Invalid URL", Toast.LENGTH_LONG).show()
-            return
-        }
-
-        val state = share(target)
-        if (state is AppState.Error) {
-            Toast.makeText(this, state.message, Toast.LENGTH_LONG).show()
-        } else {
-            navigateTo(state)
         }
     }
 
@@ -95,54 +85,39 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun handleIntent(newIntent: Intent) {
-        val newState = getStateFrom(newIntent)
         this.navStack.clear()
-        navigateTo(newState)
-    }
-
-    private fun getStateFrom(intent: Intent?): AppState {
-        try {
-            val url = getUrlFrom(intent) ?: return AppState.Home
-            val target = getTargetFor(url.toHttpUrl())
-            return share(target)
-        } catch (e: IllegalArgumentException) {
-            return AppState.Error(e.message ?: "something went wrong")
-        }
-    }
-
-    private fun share(target: ShareTarget): AppState {
-        // TODO this will get more generic, I promise
-        // TODO make this a lot better in yt2ig-18 (but it'll do for now)
-        if (target !is YouTubeVideo) {
-            return AppState.Error("Unsupported share target")
+        val maybeUrl = getUrlFrom(newIntent)
+        if (maybeUrl == null) {
+            navigateTo(AppState.Home)
+            return
         }
 
-        val state = AppState.Share(target, AppState.Share.LoadingState.Starting)
+        when (val result = parse(maybeUrl))  {
+            is Parsing.Error -> {
+                navigateTo(AppState.Error(result.errorMessage, maybeUrl))
+            }
 
-        lifecycleScope.launch {
-            try {
-                val videoInfo = youTubeService.getVideoInfo(target.videoId)
-                val loadedInfoState = AppState.Share(target, AppState.Share.LoadingState.LoadedInfo(videoInfo))
-                replaceState(state, loadedInfoState)
-
-                imageLoader.ensureLoaded(videoInfo.thumbnailUrl)
-                val loadedThumbnailState = AppState.Share(target, AppState.Share.LoadingState.LoadedThumbnail(videoInfo))
-                replaceState(loadedInfoState, loadedThumbnailState)
-
-                val shareCard = generateCard(videoInfo, imageLoader)
-                val createdState = AppState.Share(
-                    target,
-                    AppState.Share.LoadingState.Created(videoInfo, target.url, shareCard)
-                )
-                replaceState(loadedThumbnailState, createdState)
-
-            } catch (e: Exception) {
-                val errorState = AppState.Error(e.message ?: "something went wrong")
-                replaceState(state, errorState)
+            is Parsing.Result -> {
+                share(result.target)
             }
         }
+    }
 
-        return state
+    private fun share(target: ShareTarget.Valid) {
+        // TODO this will get more generic, I promise
+        if (target !is YouTubeVideo) {
+            navigateTo(AppState.Error(ErrorMessage("error_parsing_unknownsharetarget"), target.url.toString()))
+            return
+        }
+
+        if (!this.hasInternet()) {
+            navigateTo(AppState.Error(ErrorMessage("error_no_network"), target.url.toString()))
+            return
+        }
+
+        lifecycleScope.launch {
+            cardCreationService.createCard(target)
+        }
     }
 
     private fun navigateTo(newState: AppState) = this.navStack.add(newState)
@@ -154,9 +129,7 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    fun goHome() {
-        this.navStack.add(AppState.Home)
-    }
+    fun goHome() = this.navStack.add(AppState.Home)
 
     private fun shareToInstaStory(url: HttpUrl, card: ShareCard) {
         val uri = writeFileToCache(card.image)

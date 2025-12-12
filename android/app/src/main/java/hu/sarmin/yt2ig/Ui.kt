@@ -1,24 +1,23 @@
 package hu.sarmin.yt2ig
 
+import android.content.Context
 import androidx.compose.animation.Crossfade
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.staticCompositionLocalOf
-import androidx.compose.ui.Modifier
-import hu.sarmin.yt2ig.ui.AppFrame
+import hu.sarmin.yt2ig.ui.ErrorScreen
 import hu.sarmin.yt2ig.ui.HomeScreen
 import hu.sarmin.yt2ig.ui.SharingScreen
 import hu.sarmin.yt2ig.ui.theme.Yt2igTheme
 
 data class AppActions(
     val goHome: () -> Unit,
-    val onUrlEntered: (maybeUrl: String) -> Unit,
+    val parse: (String) -> Parsing,
+    val share: (ShareTarget.Valid) -> Unit,
     val shareToInstaStory: (AppState.Share.LoadingState.Created) -> Unit,
     val shareToOther: (AppState.Share.LoadingState.Created) -> Unit,
-    val copyUrl: (ValidShareTarget) -> Unit
+    val copyUrl: (ShareTarget.Valid) -> Unit,
+    val toMessage: (ErrorMessage) -> String
 )
 
 val LocalAppActions = staticCompositionLocalOf<AppActions> {
@@ -26,7 +25,7 @@ val LocalAppActions = staticCompositionLocalOf<AppActions> {
 }
 
 @Composable
-fun App(value: AppState, functions: AppActions) {
+fun App(value: AppState, functions: AppActions, getContext: () -> Context) {
     CompositionLocalProvider(LocalAppActions provides functions) {
         val stateName = when (value) {
             is AppState.Home -> "Home"
@@ -39,21 +38,9 @@ fun App(value: AppState, functions: AppActions) {
                 when (value) {
                     is AppState.Home -> HomeScreen()
                     is AppState.Share -> SharingScreen(value.shareTarget, value.loading)
-                    is AppState.Error -> ErrorScreen(value.message, functions.goHome)
+                    is AppState.Error -> ErrorScreen(value.error.toMessage(getContext()), value.rawInput, functions.goHome)
                 }
             }
         }
-    }
-}
-
-@Composable
-fun ErrorScreen(message: String, goHome: () -> Unit) {
-    AppFrame(false, "Error", goHome) {
-        Text(
-            text = "Error: $message",
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(it)
-        )
     }
 }

@@ -1,3 +1,18 @@
 <resources>
     <string name="app_name">Little Card</string>
+    <string name="error_parsing_invalidurl">That does not look like a valid URL. Could you check again?</string>
+    <string name="error_parsing_unknownsharetarget">That URL doesn\'t look like something I can handle. Currently I can make cards only out of YouTube videos.</string>
+    <string name="error_parsing_novideoid">I couldn\'t find a video ID in that URL. Could you double-check it?</string>
+    <string name="error_parsing_ischannel">That URL points to a YouTube channel not a video. I can\'t make cards for channels yet.</string>
+    <string name="error_parsing_isplaylist">That URL points to a YouTube playlist not a video. I can\'t make cards for playlists yet.</string>
+    <string name="error_parsing_nopath">It looks like you just sent me the domain name. I need the full URL of a YouTube video to make a card.</string>
+    <string name="error_parsing_unknownpath">Sorry, I don\'t recognize this YouTube URL. Could you double-check or try a different link?</string>
+    <string name="error_any">Something unexpected happened: %s</string>
+    <string name="error_no_network">The phone doesn\'t seem to have internet access. Would you mind retrying?</string>
+    <string name="error_network_timeout">It\'s taking a rather long time to download things. Would you mind retrying later?</string>
+    <string name="error_youtube_videoinfonotfound">Could not find video info! Are you sure your link is correct?</string>
+    <string name="error_youtube_youtubeerror">Uh, YouTube said something unexpected. You may want to try again a bit later.</string>
+    <string name="error_youtube_nothumbnailavailable">There doesn\'t seem to be a thumbnail available for the video :s.</string>
+    <string name="error_image_loader_imagedownloadfailed">Uh-oh, I could not download the video thumbnail. It may be just a hiccup, but I dunno. Maybe you could retry?</string>
+    <string name="error_network_unreachable">The network seems to be unreachable. Could you check your connection and try again? Or YouTube may be having a bad day.</string>
 </resources>

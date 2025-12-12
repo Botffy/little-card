@@ -1,27 +1,26 @@
 package hu.sarmin.yt2ig
 
-import android.content.Context
+import android.util.Log
+import hu.sarmin.yt2ig.util.HttpClientProvider
 import hu.sarmin.yt2ig.util.await
-import hu.sarmin.yt2ig.util.getHttpClient
 import okhttp3.HttpUrl
-import java.io.IOException
+import java.util.concurrent.ConcurrentHashMap
 
-class ImageLoader(context: Context) {
-    enum class PresetImageId {
-        YOUTUBE_LOGO,
-    }
+sealed interface ImageLoaderError : CardCreationError {
+    data object ImageDownloadFailed : ImageLoaderError
 
-    private val cache = mutableMapOf<String, ByteArray>()
+    override fun code() = "error_image_loader_${this::class.simpleName!!.lowercase()}"
+}
 
-    init {
-        cache[PresetImageId.YOUTUBE_LOGO.name] = context.assets.open("logos/yt_icon_red_digital.png").readBytes()
-    }
+interface ImageLoader {
+    suspend fun fetchImage(url: HttpUrl): ByteArray
+    suspend fun ensureLoaded(url: HttpUrl)
+}
 
-    fun fetchPresetImage(id: PresetImageId): ByteArray {
-        return cache[id.name]!!
-    }
+class RealImageLoader(private val httpClientProvider: HttpClientProvider): ImageLoader {
+    private val cache = ConcurrentHashMap<String, ByteArray>()
 
-    suspend fun fetchImage(url: HttpUrl): ByteArray {
+    override suspend fun fetchImage(url: HttpUrl): ByteArray {
         val id = url.toString()
         if (!cache.containsKey(id)) {
             val bytes = download(url)
@@ -31,7 +30,7 @@ class ImageLoader(context: Context) {
         return cache[url.toString()]!!
     }
 
-    suspend fun ensureLoaded(url: HttpUrl) {
+    override suspend fun ensureLoaded(url: HttpUrl) {
         val id = url.toString()
         if (!cache.containsKey(id)) {
             val bytes = download(url)
@@ -44,9 +43,10 @@ class ImageLoader(context: Context) {
             .url(url)
             .build()
 
-        getHttpClient().await(request).use { response ->
+        httpClientProvider.getClient().await(request).use { response ->
             if (!response.isSuccessful) {
-                throw IOException("Image download error ${response.code}, ${response.message}")
+                Log.w("ImageLoader", "downloading $url failed: ${response.code} ${response.message}")
+                throw CardCreationException(ImageLoaderError.ImageDownloadFailed)
             }
 
             return response.body.bytes()

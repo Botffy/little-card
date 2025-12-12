@@ -1,6 +1,5 @@
 package hu.sarmin.yt2ig.ui
 
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -9,17 +8,12 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.LinkAnnotation
@@ -31,6 +25,8 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
 import hu.sarmin.yt2ig.LocalAppActions
+import hu.sarmin.yt2ig.ui.common.TextWithEmoji
+import hu.sarmin.yt2ig.ui.common.UrlInput
 import hu.sarmin.yt2ig.ui.theme.Yt2igTheme
 import hu.sarmin.yt2ig.ui.util.PreviewScreenElement
 
@@ -43,7 +39,13 @@ fun HomeScreen() {
             Modifier.padding(padding)
         ) {
             Intro()
-            UrlInput(actions.onUrlEntered)
+            UrlInput(
+                label = "Paste a YouTube link!",
+                buttonLabel = "Make my card",
+                parse = actions.parse,
+                share = actions.share,
+                errorMessageConverter = actions.toMessage
+            )
 
             Column {
                 About()
@@ -63,18 +65,11 @@ private fun PreviewHomeScreen() {
 
 @Composable
 private fun Hi(style: TextStyle, color: Color) {
-    Text(
-        buildAnnotatedString {
-            withStyle(
-                style = style.toSpanStyle()
-                    .copy(color = color.copy(alpha = if (isSystemInDarkTheme()) 0.6f else 1f))
-            ) { append("✨") }
-
-            withStyle(
-                style = style.toSpanStyle()
-                    .copy(color = color)
-            ) { append(" Hi!") }
-        }
+    TextWithEmoji(
+        text = "Hi!",
+        emoji = "✨",
+        style = style,
+        color = color,
     )
 }
 
@@ -111,67 +106,6 @@ private fun Intro() {
 private fun PreviewIntro() {
     PreviewScreenElement {
         Intro()
-    }
-}
-
-@Composable
-private fun UrlInput(onUrlEntered: (maybeUrl: String) -> Unit = {}) {
-    val text = remember {
-        mutableStateOf("")
-    }
-
-    Card(
-        modifier = Modifier
-            .padding(bottom = 8.dp)
-            .fillMaxWidth(),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
-    ) {
-        Column(
-            modifier = Modifier
-                .padding(16.dp)
-                .fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-
-            Text(
-                text = "Paste a YouTube link!",
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.primary
-            )
-
-            OutlinedTextField(
-                modifier = Modifier
-                    .fillMaxWidth(),
-                enabled = true,
-                value = text.value,
-                onValueChange = { text.value = it },
-                placeholder = {
-                    Text("https://youtu.be/...")
-                },
-                singleLine = true,
-            )
-
-            Button(
-                onClick = {
-                    if (text.value.isNotBlank()) {
-                        onUrlEntered(text.value.trim())
-                    }
-
-                },
-                modifier = Modifier.align(Alignment.End),
-                enabled = text.value.isNotBlank()
-            ) {
-                Text("Make my card")
-            }
-        }
-    }
-}
-
-@PreviewLightDark
-@Composable
-private fun PreviewUrlInput() {
-    PreviewScreenElement {
-        UrlInput()
     }
 }
 
