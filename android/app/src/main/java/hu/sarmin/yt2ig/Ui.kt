@@ -12,10 +12,12 @@ import hu.sarmin.yt2ig.ui.theme.Yt2igTheme
 
 data class AppActions(
     val goHome: () -> Unit,
-    val onUrlEntered: (maybeUrl: String) -> Unit,
+    val parse: (String) -> Parsing,
+    val share: (ShareTarget.Valid) -> Unit,
     val shareToInstaStory: (AppState.Share.LoadingState.Created) -> Unit,
     val shareToOther: (AppState.Share.LoadingState.Created) -> Unit,
-    val copyUrl: (ShareTarget.Valid) -> Unit
+    val copyUrl: (ShareTarget.Valid) -> Unit,
+    val toMessage: (ErrorMessage) -> String
 )
 
 val LocalAppActions = staticCompositionLocalOf<AppActions> {
@@ -36,7 +38,7 @@ fun App(value: AppState, functions: AppActions, getContext: () -> Context) {
                 when (value) {
                     is AppState.Home -> HomeScreen()
                     is AppState.Share -> SharingScreen(value.shareTarget, value.loading)
-                    is AppState.Error -> ErrorScreen(value.error.toMessage(getContext()), functions.goHome)
+                    is AppState.Error -> ErrorScreen(value.error.toMessage(getContext()), value.rawInput, functions.goHome)
                 }
             }
         }

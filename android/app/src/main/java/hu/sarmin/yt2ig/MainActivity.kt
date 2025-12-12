@@ -66,30 +66,16 @@ class MainActivity : ComponentActivity() {
                 this.navStack.lastOrNull() ?: AppState.Home,
                 AppActions(
                     goHome = { goHome() },
-                    onUrlEntered = { onUrlEntered(it) },
+                    parse = { parse(it) },
+                    share = { share(it) },
                     shareToInstaStory = { shareToInstaStory(it.target.url, it.shareCard) },
                     shareToOther = { shareToOther(it.shareCard) },
-                    copyUrl = { target -> copyToClipboard(target.url.toString()) }
+                    copyUrl = { target -> copyToClipboard(target.url.toString()) },
+                    toMessage = { errorMessage -> errorMessage.toMessage(this) }
                 ),
                 getContext = { this }
             )
         }
-    }
-
-    private fun onUrlEntered(maybeUrl: String) {
-        // TODO Handle errors a lot better in yt2ig-18
-
-        val target = when (val result = parse(maybeUrl)) {
-            is Parsing.Error -> {
-                Toast.makeText(this, result.errorMessage.toMessage(this), Toast.LENGTH_LONG).show()
-                return
-            }
-            is Parsing.Result -> {
-                result.target
-            }
-        }
-
-        share(target)
     }
 
     override fun onNewIntent(newIntent: Intent) {
@@ -108,7 +94,7 @@ class MainActivity : ComponentActivity() {
 
         when (val result = parse(maybeUrl))  {
             is Parsing.Error -> {
-                navigateTo(AppState.Error(result.errorMessage))
+                navigateTo(AppState.Error(result.errorMessage, maybeUrl))
             }
 
             is Parsing.Result -> {
@@ -117,15 +103,15 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private fun share(target: ShareTarget) {
+    private fun share(target: ShareTarget.Valid) {
         // TODO this will get more generic, I promise
         if (target !is YouTubeVideo) {
-            navigateTo(AppState.Error(ErrorMessage("error_parsing_unknownsharetarget")))
+            navigateTo(AppState.Error(ErrorMessage("error_parsing_unknownsharetarget"), target.url.toString()))
             return
         }
 
         if (!this.hasInternet()) {
-            navigateTo(AppState.Error(ErrorMessage("error_no_network")))
+            navigateTo(AppState.Error(ErrorMessage("error_no_network"), target.url.toString()))
             return
         }
 
