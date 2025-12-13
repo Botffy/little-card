@@ -72,6 +72,7 @@ dependencies {
     implementation(libs.okhttp)
     implementation(libs.androidx.palette.ktx)
     implementation("androidx.compose.material:material-icons-extended:1.7.7")
+    implementation(libs.androidx.browser)
 
     testImplementation(libs.junit.jupiter)
     testImplementation(libs.truth)

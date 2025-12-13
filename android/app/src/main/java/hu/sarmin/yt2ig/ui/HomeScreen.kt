@@ -1,5 +1,11 @@
 package hu.sarmin.yt2ig.ui
 
+import android.content.Context
+import android.content.Intent
+import android.net.Uri
+import androidx.browser.customtabs.CustomTabColorSchemeParams
+import androidx.browser.customtabs.CustomTabsIntent
+import androidx.browser.customtabs.CustomTabsIntent.SHARE_STATE_OFF
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -10,12 +16,15 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.LinkAnnotation
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -24,10 +33,10 @@ import androidx.compose.ui.text.withLink
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
+import androidx.core.net.toUri
 import hu.sarmin.yt2ig.LocalAppActions
 import hu.sarmin.yt2ig.ui.common.TextWithEmoji
 import hu.sarmin.yt2ig.ui.common.UrlInput
-import hu.sarmin.yt2ig.ui.theme.Yt2igTheme
 import hu.sarmin.yt2ig.ui.util.PreviewScreenElement
 
 @Composable
@@ -52,14 +61,6 @@ fun HomeScreen() {
                 Links()
             }
         }
-    }
-}
-
-@PreviewLightDark
-@Composable
-private fun PreviewHomeScreen() {
-    Yt2igTheme {
-        HomeScreen()
     }
 }
 
@@ -111,18 +112,47 @@ private fun PreviewIntro() {
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun Links(openTos: () -> Unit = {}, openPrivacy: () -> Unit = {}, toGithub: () -> Unit = {}) {
+private fun Links() {
     FlowRow(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceAround
     ) {
-        TextButton(onClick = openTos)
+        val context = LocalContext.current
+        val colorScheme = MaterialTheme.colorScheme
+        val open = { uri: String ->
+            openInWebTab(uri.toUri(), context, colorScheme)
+        }
+
+        TextButton(onClick = { open("https://botffy.github.io/little-card/tos.html") })
             { Text("Terms of Service", style = MaterialTheme.typography.bodySmall) }
-        TextButton(onClick = openPrivacy)
+        TextButton(onClick = { open("https://botffy.github.io/little-card/privacy.html") })
             { Text("Privacy Policy", style = MaterialTheme.typography.bodySmall) }
-        TextButton(onClick = toGithub)
+        TextButton(onClick = { openInExternalBrowser("https://github.com/Botffy/little-card/".toUri(), context) })
             { Text("Source code", style = MaterialTheme.typography.bodySmall) }
     }
+}
+
+private fun openInWebTab(uri: Uri, context: Context, colorScheme: ColorScheme) {
+    val embeddedTab = CustomTabsIntent.Builder()
+        .setDefaultColorSchemeParams(CustomTabColorSchemeParams.Builder()
+            .setToolbarColor(colorScheme.primary.toArgb())
+            .build())
+        .setShareState(SHARE_STATE_OFF)
+        .setShowTitle(true)
+        .setEphemeralBrowsingEnabled(true)
+        .build()
+
+    embeddedTab.intent.putExtra(
+        Intent.EXTRA_REFERRER,
+        ("android-app://" + context.packageName).toUri()
+    )
+
+    embeddedTab.launchUrl(context, uri)
+}
+
+private fun openInExternalBrowser(uri: Uri, context: Context) {
+    val intent = Intent(android.content.Intent.ACTION_VIEW, uri)
+    context.startActivity(intent)
 }
 
 @Composable
