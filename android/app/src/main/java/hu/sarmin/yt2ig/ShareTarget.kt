@@ -1,5 +1,6 @@
 package hu.sarmin.yt2ig
 
+import android.util.Log
 import okhttp3.HttpUrl
 import okhttp3.HttpUrl.Companion.toHttpUrl
 
@@ -7,6 +8,7 @@ sealed interface Parsing {
     interface Error : Parsing {
         object InvalidUrl : Error
         object UnknownShareTarget : Error
+        object MultipleUrls : Error
 
         val errorMessage: ErrorMessage
             get() = ErrorMessage("error_parsing_${this::class.simpleName!!.lowercase()}")
@@ -14,14 +16,87 @@ sealed interface Parsing {
     data class Result(val target: ShareTarget.Valid) : Parsing
 }
 
-fun parse(url: String): Parsing {
-    val httpUrl = try {
-        url.toHttpUrl()
-    } catch (e: IllegalArgumentException) {
-        return Parsing.Error.InvalidUrl
+private const val TAG = "ShareTarget"
+
+/**
+ * An intentionally liberal URL regex to extract url candidates which are then validated properly.
+ */
+private val URL_REGEX = Regex("""
+(?xi)
+\b
+(
+    (?:https?://)?                     # Optional protocol
+    (?:
+        [1-9]\d{0,2}(?:\.\d{1,3}){3}       # IP address
+        |
+        (?:[a-zA-Z0-9-]+\.)+[a-zA-Z]{2,}   # Domain name
+    )
+    (?:
+        [^\s()<>{}\[\]]*                   # path and query string
+        [^\s`!()\[\]{};:'".,<>?«»“”‘’]     # ending is more constrained
+    )?
+)
+""".trimIndent())
+
+fun parse(input: String): Parsing {
+    val trimmedInput = input.trim()
+    val hasWhitespace = trimmedInput.any { it.isWhitespace() }
+
+    // Try to parse as a direct URL first
+    val directHttpUrl = if (!hasWhitespace) {
+        try {
+            trimmedInput.toHttpUrl()
+        } catch (_: IllegalArgumentException) {
+            // Maybe missing protocol
+            if (!trimmedInput.startsWith("http://") && !trimmedInput.startsWith("https://")) {
+                try {
+                    "https://$trimmedInput".toHttpUrl()
+                } catch (_: IllegalArgumentException) {
+                    null // Still no luck
+                }
+            } else {
+                return Parsing.Error.InvalidUrl
+            }
+        }
+    } else {
+        null // Has whitespace, treat as text
     }
 
-    return getTargetFor(httpUrl)
+    if (directHttpUrl != null) {
+        Log.d(TAG, "parse: input is a direct URL")
+        return getTargetFor(directHttpUrl)
+    }
+
+    val urls = URL_REGEX.findAll(trimmedInput)
+        .map { match -> toUrlIfPossible(match.value) }
+        .filterNotNull()
+        .toList()
+
+    return when (urls.size) {
+        0 -> {
+            Log.i(TAG, "parse: no valid URLs found in input")
+            Parsing.Error.InvalidUrl
+        }
+        1 -> {
+            getTargetFor(urls.first())
+        }
+        else -> {
+            Log.i(TAG, "parse: multiple URLs found in input")
+            Parsing.Error.MultipleUrls
+        }
+    }
+}
+
+private fun toUrlIfPossible(input: String): HttpUrl? {
+    try {
+        if (input.startsWith("http://") || input.startsWith("https://")) {
+            return input.toHttpUrl()
+        }
+
+        return "https://$input".toHttpUrl()
+    } catch (e: IllegalArgumentException) {
+        return null
+    }
 }
 
 sealed interface ShareTarget {
