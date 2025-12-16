@@ -9,14 +9,44 @@ plugins {
     id("de.mannodermaus.android-junit5") version "1.14.0.0"
 }
 
+val isReleaseBuild = gradle.startParameter.taskNames.any { it.contains("Release", ignoreCase = true) }
 
-val keyPropsFile = rootProject.file("key.properties")
+val keyFilePath = System.getenv("LITTLE_CARD_KEY_FILE") ?: "key.properties"
+val keyPropsFile = rootProject.file(keyFilePath)
 val keyProperties = Properties()
 if (keyPropsFile.exists()) {
     keyProperties.load(FileInputStream(keyPropsFile))
+} else {
+    logger.warn("Key properties file not found at $keyFilePath, proceeding without it.")
 }
 
 android {
+    signingConfigs {
+        create("release") {
+            val storePathProperty = keyProperties.getProperty("KEYSTORE_PATH")
+            val storePasswordProperty = keyProperties.getProperty("KEYSTORE_PASSWORD")
+            val keyAliasProperty = keyProperties.getProperty("KEY_ALIAS")
+            val keyPasswordProperty = keyProperties.getProperty("KEY_PASSWORD")
+
+            val missing = listOf(
+                "KEYSTORE_PATH" to storePathProperty,
+                "KEYSTORE_PASSWORD" to storePasswordProperty,
+                "KEY_ALIAS" to keyAliasProperty,
+                "KEY_PASSWORD" to keyPasswordProperty
+            ).filter { it.second.isNullOrBlank() }.map { it.first }
+
+            if (missing.isEmpty()) {
+                storeFile = rootProject.file(storePathProperty!!)
+                storePassword = storePasswordProperty!!
+                keyAlias = keyAliasProperty!!
+                keyPassword = keyPasswordProperty!!
+            } else if (isReleaseBuild) {
+                throw GradleException(
+                    "Missing signing properties: ${missing.joinToString(", ")} in $keyFilePath. Provide them in `key.properties` or set `LITTLE_CARD_KEY_FILE` env."
+                )
+            }
+        }
+    }
     namespace = "hu.sarmin.yt2ig"
     compileSdk {
         version = release(36)
@@ -31,16 +61,22 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
+        val youtubeApiKey = keyProperties.getProperty("YOUTUBE_API_KEY")
+        if (youtubeApiKey.isNullOrBlank() && isReleaseBuild) {
+            throw GradleException("YOUTUBE_API_KEY is not defined in $keyFilePath.")
+        }
+
         buildConfigField(
             "String",
             "YOUTUBE_API_KEY",
-            "\"${keyProperties.getProperty("YOUTUBE_API_KEY", "")}\""
+            "\"$youtubeApiKey\""
         )
     }
 
     buildTypes {
         release {
             isMinifyEnabled = false
+            signingConfig = signingConfigs.getByName("release")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
