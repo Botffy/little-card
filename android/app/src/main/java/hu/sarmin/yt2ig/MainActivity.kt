@@ -133,9 +133,15 @@ class MainActivity : ComponentActivity() {
     fun goHome() = this.navStack.add(AppState.Home)
 
     private fun shareToInstaStory(url: HttpUrl, card: ShareCard) {
-        val uri = writeFileToCache(card.image)
+        val intent = createInstaIntent(card)
+
+        if (intent.resolveActivity(packageManager) == null) {
+            Toast.makeText(this, "It looks like Instagram is not installed on this device!", Toast.LENGTH_LONG).show()
+            return
+        }
+
         copyToClipboard(url.toString())
-        launchInsta(uri, card.gradientColors)
+        startActivity(intent)
     }
 
     private fun writeFileToCache(bitmap: Bitmap): Uri {
@@ -153,8 +159,11 @@ class MainActivity : ComponentActivity() {
         )
     }
 
-    fun launchInsta(imageUri: Uri, gradientColors: Pair<Int, Int>) {
-        val intent = Intent("com.instagram.share.ADD_TO_STORY").apply {
+    fun createInstaIntent(card: ShareCard): Intent {
+        val imageUri = writeFileToCache(card.image)
+        val gradientColors = card.gradientColors
+
+        val result = Intent("com.instagram.share.ADD_TO_STORY").apply {
             setType("image/*")
             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
             putExtra("interactive_asset_uri", imageUri)
@@ -166,11 +175,7 @@ class MainActivity : ComponentActivity() {
 
         grantUriPermission("com.instagram.android", imageUri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
 
-        if (intent.resolveActivity(packageManager) != null) {
-            startActivity(intent)
-        } else {
-            Toast.makeText(this, "Instagram not installed", Toast.LENGTH_LONG).show()
-        }
+        return result
     }
 
     private fun shareToOther(card: ShareCard) {
