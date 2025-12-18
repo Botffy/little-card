@@ -1,6 +1,7 @@
 package hu.sarmin.yt2ig.ui
 
 import android.graphics.Bitmap
+import android.util.Log
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.FastOutSlowInEasing
@@ -13,6 +14,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -22,27 +24,39 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.outlined.Link
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import hu.sarmin.yt2ig.AppState
 import hu.sarmin.yt2ig.LocalAppActions
 import hu.sarmin.yt2ig.ShareTarget
+import hu.sarmin.yt2ig.ui.util.BulletItem
 
 @Composable
 fun SharingScreen(target: ShareTarget.Valid, loading: AppState.Share.LoadingState) {
@@ -56,6 +70,22 @@ fun SharingScreen(target: ShareTarget.Valid, loading: AppState.Share.LoadingStat
                 is AppState.Share.LoadingState.LoadedInfo -> "Downloading thumbnail for '${loading.data.title}'"
                 is AppState.Share.LoadingState.LoadedThumbnail -> "Creating share card for '${loading.data.title}'"
                 is AppState.Share.LoadingState.Created -> "Done"
+            }
+
+            val openReminderDialog = remember { mutableStateOf(false) }
+
+            if (openReminderDialog.value) {
+                LinkReminderModal(
+                    onDismiss = { openReminderDialog.value = false },
+                    onConfirm = {
+                        openReminderDialog.value = false
+                        if (loading !is AppState.Share.LoadingState.Created) {
+                            Log.e("SharingScreen", "The image isn't ready during sharing!")
+                            return@LinkReminderModal
+                        }
+                        actions.shareToInstaStory(loading)
+                    }
+                )
             }
 
             Box(
@@ -100,7 +130,9 @@ fun SharingScreen(target: ShareTarget.Valid, loading: AppState.Share.LoadingStat
                                 enabled = loading is AppState.Share.LoadingState.Created,
                                 shareToInsta = {
                                     when (loading) {
-                                        is AppState.Share.LoadingState.Created -> actions.shareToInstaStory(loading)
+                                        is AppState.Share.LoadingState.Created -> {
+                                            openReminderDialog.value = true
+                                        }
                                         else -> {}
                                     }
                                 },
@@ -123,6 +155,107 @@ fun SharingScreen(target: ShareTarget.Valid, loading: AppState.Share.LoadingStat
                     Spacer(modifier = Modifier.size(32.dp))
                 }
             }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun LinkReminderModal(
+    onDismiss: () -> Unit,
+    onConfirm: () -> Unit,
+) {
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+        scrimColor = MaterialTheme.colorScheme.scrim.copy(alpha = 0.7f),
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp, vertical = 20.dp)
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector = Icons.Outlined.Link,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.secondary,
+                    modifier = Modifier.size(18.dp)
+                )
+                Spacer(Modifier.width(10.dp))
+                Text(
+                    text = "We'll copy the link for you",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
+            Spacer(Modifier.height(14.dp))
+
+            Text(
+                text = "Add a Link sticker in Instagram",
+                style = MaterialTheme.typography.titleLarge
+            )
+
+            Spacer(Modifier.height(18.dp))
+
+            val bullet = @Composable { text: AnnotatedString ->
+                BulletItem(
+                    text = text,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
+            Text(
+                text = "After the Instagram Story editor opens:",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+
+            Spacer(Modifier.height(12.dp))
+
+            bullet(
+                buildAnnotatedString {
+                    append("Tap the ")
+                    withStyle(SpanStyle(fontWeight = FontWeight.Bold)) {
+                        append("Sticker")
+                    }
+                    append(" button")
+                }
+            )
+            Spacer(Modifier.height(6.dp))
+            bullet(
+                buildAnnotatedString {
+                    append("Choose the ")
+                    withStyle(SpanStyle(fontWeight = FontWeight.Bold)) {
+                        append("Link")
+                    }
+                    append(" sticker")
+                }
+            )
+            Spacer(Modifier.height(6.dp))
+            bullet(
+                buildAnnotatedString {
+                    append("Paste the copied URL into the ")
+                    withStyle(SpanStyle(fontWeight = FontWeight.Bold)) {
+                        append("link field")
+                    }
+                }
+            )
+
+            Spacer(Modifier.height(18.dp))
+
+            Button(
+                onClick = onConfirm,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Copy link & open Instagram")
+            }
+
+            Spacer(Modifier.height(8.dp))
         }
     }
 }
