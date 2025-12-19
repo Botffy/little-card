@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.HelpOutline
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -12,10 +13,12 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import hu.sarmin.yt2ig.LocalAppActions
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AppFrame(isHome: Boolean, title: String, goHome: () -> Unit, content: @Composable (PaddingValues) -> Unit) {
+fun AppFrame(isHome: Boolean = false, isHelp: Boolean = false, content: @Composable (PaddingValues) -> Unit) {
+    val actions = LocalAppActions.current
     Scaffold(
         topBar = {
             TopAppBar(
@@ -27,19 +30,30 @@ fun AppFrame(isHome: Boolean, title: String, goHome: () -> Unit, content: @Compo
                 ),
                 title = { },
                 actions = {
-                    IconButton(
-                        onClick = { /* TODO yt2ig-33 */ }
-                    ) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.HelpOutline,
-                            contentDescription = "Help"
-                        )
+                    if (!isHelp) {
+                        IconButton(
+                            onClick = { actions.showHelp() }
+                        ) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.HelpOutline,
+                                contentDescription = "Help"
+                            )
+                        }
+                    } else {
+                        IconButton(
+                            onClick = { actions.back() },
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.Close,
+                                contentDescription = "Close help"
+                            )
+                        }
                     }
                 },
                 navigationIcon = {
-                    if (!isHome) {
+                    if (!isHome && !isHelp) {
                         IconButton(
-                            onClick = goHome,
+                            onClick = { actions.goHome() },
                         ) {
                             Icon(
                                 imageVector = Icons.AutoMirrored.Rounded.ArrowBack,

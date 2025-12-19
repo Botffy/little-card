@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -16,17 +17,22 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 
 @Composable
-fun StandardScreen(modifier: Modifier, content: @Composable ColumnScope.() -> Unit) {
+fun StandardScreen(modifier: Modifier, scrollable: Boolean = true, content: @Composable ColumnScope.() -> Unit) {
+    val modifierWithScrolling = if (scrollable) {
+        modifier.verticalScroll(rememberScrollState())
+    } else {
+        modifier.fillMaxHeight()
+    }
+
     Box(
         modifier = Modifier
             .fillMaxSize()
     ) {
         Column(
-            modifier = modifier
+            modifier = modifierWithScrolling
                 .align(Alignment.TopCenter)
                 .widthIn(max = 480.dp)
                 .fillMaxWidth()
-                .verticalScroll(rememberScrollState())
                 .padding(start = 16.dp, end = 16.dp, bottom = 24.dp, top = 0.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(16.dp)

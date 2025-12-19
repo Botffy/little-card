@@ -66,7 +66,9 @@ class MainActivity : ComponentActivity() {
             App(
                 this.navStack.lastOrNull() ?: AppState.Home,
                 AppActions(
+                    back = { onBackPressedDispatcher.onBackPressed() },
                     goHome = { goHome() },
+                    showHelp = { showHelp() },
                     parse = { parse(it) },
                     share = { share(it) },
                     shareToInstaStory = { shareToInstaStory(it.target.url, it.shareCard) },
@@ -131,6 +133,8 @@ class MainActivity : ComponentActivity() {
     }
 
     fun goHome() = this.navStack.add(AppState.Home)
+
+    fun showHelp() = this.navStack.add(AppState.Help)
 
     private fun shareToInstaStory(url: HttpUrl, card: ShareCard) {
         val intent = createInstaIntent(card)

@@ -2,6 +2,7 @@ package hu.sarmin.yt2ig
 
 sealed interface AppState {
     data object Home : AppState
+    data object Help: AppState
     data class Share(val shareTarget: ShareTarget.Valid, val loading: LoadingState) : AppState {
         sealed interface LoadingState {
             data class Starting(val target: YouTubeVideo) : LoadingState

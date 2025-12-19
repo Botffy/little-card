@@ -6,12 +6,15 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.staticCompositionLocalOf
 import hu.sarmin.yt2ig.ui.ErrorScreen
+import hu.sarmin.yt2ig.ui.HelpScreen
 import hu.sarmin.yt2ig.ui.HomeScreen
 import hu.sarmin.yt2ig.ui.SharingScreen
 import hu.sarmin.yt2ig.ui.theme.Yt2igTheme
 
 data class AppActions(
     val goHome: () -> Unit,
+    val showHelp: () -> Unit,
+    val back: () -> Unit,
     val parse: (String) -> Parsing,
     val share: (ShareTarget.Valid) -> Unit,
     val shareToInstaStory: (AppState.Share.LoadingState.Created) -> Unit,
@@ -29,6 +32,7 @@ fun App(value: AppState, functions: AppActions, getContext: () -> Context) {
     CompositionLocalProvider(LocalAppActions provides functions) {
         val stateName = when (value) {
             is AppState.Home -> "Home"
+            is AppState.Help -> "Help"
             is AppState.Share -> "Share"
             is AppState.Error -> "Error"
         }
@@ -37,6 +41,7 @@ fun App(value: AppState, functions: AppActions, getContext: () -> Context) {
             Crossfade(targetState = stateName, label = "state") { _ ->
                 when (value) {
                     is AppState.Home -> HomeScreen()
+                    is AppState.Help -> HelpScreen()
                     is AppState.Share -> SharingScreen(value.shareTarget, value.loading)
                     is AppState.Error -> ErrorScreen(value.error.toMessage(getContext()), value.rawInput, functions.goHome)
                 }
