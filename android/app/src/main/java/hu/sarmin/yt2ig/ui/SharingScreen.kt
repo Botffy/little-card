@@ -61,7 +61,7 @@ import hu.sarmin.yt2ig.ui.util.BulletItem
 @Composable
 fun SharingScreen(target: ShareTarget.Valid, loading: AppState.Share.LoadingState) {
     val actions = LocalAppActions.current
-    AppFrame(false, "Share", actions.goHome) { padding ->
+    AppFrame(helpPage = HelpPage.CREATION) { padding ->
         StandardScreen(
             Modifier.padding(padding)
         ) {

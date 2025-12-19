@@ -43,7 +43,7 @@ import hu.sarmin.yt2ig.ui.util.PreviewScreenElement
 fun HomeScreen() {
     val actions = LocalAppActions.current
 
-    AppFrame(true, "", { }) { padding ->
+    AppFrame(isHome = true) { padding ->
         StandardScreen(
             Modifier.padding(padding)
         ) {

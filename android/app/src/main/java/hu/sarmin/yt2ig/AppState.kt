@@ -1,7 +1,10 @@
 package hu.sarmin.yt2ig
 
+import hu.sarmin.yt2ig.ui.HelpPage
+
 sealed interface AppState {
     data object Home : AppState
+    data class Help(val page: HelpPage): AppState
     data class Share(val shareTarget: ShareTarget.Valid, val loading: LoadingState) : AppState {
         sealed interface LoadingState {
             data class Starting(val target: YouTubeVideo) : LoadingState

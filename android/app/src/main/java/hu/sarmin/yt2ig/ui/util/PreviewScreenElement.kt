@@ -2,6 +2,8 @@ package hu.sarmin.yt2ig.ui.util
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -14,7 +16,11 @@ fun PreviewScreenElement(content: @Composable () -> Unit) {
             modifier = Modifier
                 .size(480.dp)
         ) {
-            content()
+            Surface(
+                color = MaterialTheme.colorScheme.background
+            ) {
+                content()
+            }
         }
     }
 }

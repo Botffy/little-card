@@ -25,7 +25,7 @@ import hu.sarmin.yt2ig.ui.util.PreviewScreenElement
 fun ErrorScreen(message: String, originalUrl: String, goHome: () -> Unit) {
     val actions = LocalAppActions.current
 
-    AppFrame(false, "Error", goHome) { padding ->
+    AppFrame { padding ->
         StandardScreen(
             Modifier.padding(padding)
         ) {
