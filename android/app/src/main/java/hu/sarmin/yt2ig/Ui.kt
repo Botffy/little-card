@@ -1,7 +1,11 @@
 package hu.sarmin.yt2ig
 
 import android.content.Context
-import androidx.compose.animation.Crossfade
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.staticCompositionLocalOf
@@ -31,20 +35,28 @@ val LocalAppActions = staticCompositionLocalOf<AppActions> {
 @Composable
 fun App(value: AppState, functions: AppActions, getContext: () -> Context) {
     CompositionLocalProvider(LocalAppActions provides functions) {
-        val stateName = when (value) {
-            is AppState.Home -> "Home"
-            is AppState.Help -> "Help"
-            is AppState.Share -> "Share"
-            is AppState.Error -> "Error"
-        }
-
         Yt2igTheme {
-            Crossfade(targetState = stateName, label = "state") { _ ->
-                when (value) {
+            AnimatedContent(
+                targetState = value,
+                label = "state",
+                transitionSpec = {
+                    fadeIn(
+                        animationSpec = tween(
+                            durationMillis = 500,
+                            delayMillis = 90
+                        )
+                    ) togetherWith fadeOut(
+                        animationSpec = tween(
+                            durationMillis = 200
+                        )
+                    )
+                }
+            ) { state ->
+                when (state) {
                     is AppState.Home -> HomeScreen()
-                    is AppState.Help -> HelpScreen(value.page)
-                    is AppState.Share -> SharingScreen(value.shareTarget, value.loading)
-                    is AppState.Error -> ErrorScreen(value.error.toMessage(getContext()), value.rawInput, functions.goHome)
+                    is AppState.Help -> HelpScreen(state.page)
+                    is AppState.Share -> SharingScreen(state.shareTarget, state.loading)
+                    is AppState.Error -> ErrorScreen(state.error.toMessage(getContext()), state.rawInput, functions.goHome)
                 }
             }
         }
