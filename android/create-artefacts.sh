@@ -15,4 +15,6 @@ if [[ -n $(is_dirty) ]]; then
 fi
 
 export LITTLE_CARD_KEY_FILE=release-key.properties
+./gradlew clean
+./gradlew assembleRelease
 ./gradlew bundleRelease
