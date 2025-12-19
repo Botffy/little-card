@@ -18,14 +18,15 @@ import androidx.compose.ui.unit.dp
 fun Modifier.scrollFade(
     scrollState: ScrollState,
     backgroundColor: Color,
-    fadeHeight: Dp = 48.dp,
+    fadeHeight: Dp = 32.dp,
 ): Modifier = this.drawWithContent {
     drawContent()
 
     val fadeHeightPx = fadeHeight.toPx()
 
-    // Top fade - only show if not at the top
+    // Top fade - grows gradually as you scroll down
     if (scrollState.value > 0) {
+        val actualTopFadeHeight = minOf(fadeHeightPx, scrollState.value.toFloat())
         drawRect(
             brush = Brush.verticalGradient(
                 colors = listOf(
@@ -33,20 +34,22 @@ fun Modifier.scrollFade(
                     Color.Transparent
                 ),
                 startY = 0f,
-                endY = fadeHeightPx
+                endY = actualTopFadeHeight
             )
         )
     }
 
-    // Bottom fade - only show if not at the bottom
-    if (scrollState.value < scrollState.maxValue) {
+    // Bottom fade - grows gradually as you approach the bottom
+    val remainingScroll = scrollState.maxValue - scrollState.value
+    if (remainingScroll > 0) {
+        val actualBottomFadeHeight = minOf(fadeHeightPx, remainingScroll.toFloat())
         drawRect(
             brush = Brush.verticalGradient(
                 colors = listOf(
                     Color.Transparent,
                     backgroundColor
                 ),
-                startY = size.height - fadeHeightPx,
+                startY = size.height - actualBottomFadeHeight,
                 endY = size.height
             )
         )
