@@ -109,6 +109,7 @@ dependencies {
     implementation(libs.androidx.palette.ktx)
     implementation("androidx.compose.material:material-icons-extended:1.7.7")
     implementation(libs.androidx.browser)
+    implementation("androidx.datastore:datastore-preferences:1.0.0")
 
     testImplementation(libs.junit.jupiter)
     testImplementation(libs.truth)

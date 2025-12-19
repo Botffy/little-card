@@ -5,6 +5,7 @@ import android.graphics.Bitmap
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.util.Log
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.OnBackPressedCallback
@@ -13,21 +14,28 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.mutableStateListOf
 import androidx.core.content.FileProvider
 import androidx.lifecycle.lifecycleScope
+import hu.sarmin.yt2ig.data.PreferencesManager
 import hu.sarmin.yt2ig.ui.HelpPage
 import hu.sarmin.yt2ig.util.DefaultHttpClientProvider
 import hu.sarmin.yt2ig.util.hasInternet
 import hu.sarmin.yt2ig.util.toHexRgb
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import okhttp3.HttpUrl
 import java.io.File
 import java.io.FileOutputStream
 
-private fun getUrlFrom(intent: Intent?): String? {
-    if (intent?.action == Intent.ACTION_SEND && intent.type == "text/plain") {
-        return intent.getStringExtra(Intent.EXTRA_TEXT)
-    }
+private enum class IntentType {
+    LAUNCHER,
+    TEXT_SHARE,
+    UNKNOWN
+}
 
-    return null
+private fun getIntentType(intent: Intent?): IntentType {
+    if (intent?.action == Intent.ACTION_MAIN && intent.categories?.contains(Intent.CATEGORY_LAUNCHER) == true) return IntentType.LAUNCHER
+    if (intent?.action == Intent.ACTION_SEND && intent.type == "text/plain") return IntentType.TEXT_SHARE
+    return IntentType.UNKNOWN
 }
 
 class MainActivity : ComponentActivity() {
@@ -39,6 +47,7 @@ class MainActivity : ComponentActivity() {
 
     private val imageLoader: ImageLoader by lazy { RealImageLoader(DefaultHttpClientProvider()) }
     private val imageStore: ImageStore by lazy { DefaultImageStore(this) }
+    private val preferencesManager: PreferencesManager by lazy { PreferencesManager(this) }
 
     val cardCreationService: CardCreationService by lazy { CardCreationService(youTubeService, imageLoader, imageStore, Navigation(
         navigateTo = { newState -> navigateTo(newState) },
@@ -49,9 +58,6 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
-        if (this.navStack.isEmpty()) {
-            handleIntent(intent)
-        }
 
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
@@ -62,6 +68,10 @@ class MainActivity : ComponentActivity() {
                 }
             }
         })
+
+        if (this.navStack.isEmpty()) {
+            handleIntent(intent)
+        }
 
         setContent {
             App(
@@ -82,17 +92,44 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    override fun onNewIntent(newIntent: Intent) {
-        super.onNewIntent(newIntent)
-        intent = newIntent
-        handleIntent(newIntent)
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        this.intent = intent
+        handleIntent(intent)
     }
 
     private fun handleIntent(newIntent: Intent) {
         this.navStack.clear()
-        val maybeUrl = getUrlFrom(newIntent)
+
+        when (getIntentType(newIntent)) {
+            IntentType.LAUNCHER -> handleLaunch()
+            IntentType.TEXT_SHARE -> handleShare(newIntent)
+            IntentType.UNKNOWN -> {
+                val message = "unhandled intent: ${newIntent.action}, ${newIntent.type}"
+                Log.e("App", "handleIntent: $message")
+                navigateTo(AppState.Error(ErrorMessage("error_any", listOf(message)), ""))
+            }
+        }
+    }
+
+    private fun handleLaunch() {
+        lifecycleScope.launch {
+            runBlocking {
+                val isFirstLaunch = preferencesManager.isFirstLaunch.first()
+                if (isFirstLaunch) {
+                    preferencesManager.setFirstLaunchComplete()
+                    navigateTo(listOf(AppState.Home, AppState.Help(HelpPage.INTRO)))
+                } else {
+                    navigateTo(AppState.Home)
+                }
+            }
+        }
+    }
+
+    private fun handleShare(newIntent: Intent) {
+        val maybeUrl = newIntent.getStringExtra(Intent.EXTRA_TEXT)
         if (maybeUrl == null) {
-            navigateTo(AppState.Home)
+            navigateTo(AppState.Error(ErrorMessage("error_no_shared_text"), ""))
             return
         }
 
@@ -125,6 +162,7 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun navigateTo(newState: AppState) = this.navStack.add(newState)
+    private fun navigateTo(states: List<AppState>) = this.navStack.addAll(states)
 
     private fun replaceState(oldState: AppState, newState: AppState) {
         val index = this.navStack.indexOf(oldState)
