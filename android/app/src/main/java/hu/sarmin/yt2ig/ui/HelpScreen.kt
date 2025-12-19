@@ -30,6 +30,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
@@ -82,10 +83,16 @@ private fun HelpPager(initialPage: Int = 0) {
             state = pagerState,
             modifier = Modifier.weight(1f)
         ) { page ->
+            val pageOffset = (pagerState.currentPage - page) + pagerState.currentPageOffsetFraction
+            val alpha = 1f - kotlin.math.abs(pageOffset).coerceIn(0f, 1f)
+
             Column(
                 modifier = Modifier
                     .padding(horizontal = 16.dp)
                     .fillMaxSize()
+                    .graphicsLayer {
+                        this.alpha = alpha
+                    }
             ) {
                 val helpPageBackground = lerp(
                     MaterialTheme.colorScheme.surfaceVariant,
