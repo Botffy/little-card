@@ -1,6 +1,5 @@
 package hu.sarmin.yt2ig.ui
 
-import android.util.Log
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -45,8 +44,16 @@ import hu.sarmin.yt2ig.ui.util.PreviewScreenElement
 import hu.sarmin.yt2ig.ui.util.ScrollIndicator
 import hu.sarmin.yt2ig.ui.util.scrollFade
 
+enum class HelpPage(val render: @Composable () -> Unit) {
+    INTRO({ HelpIntro() }),
+    YT_SHARING({ HelpYouTubeSharing() }),
+    CREATION({ HelpCreation() }),
+    LINK_STICKER({ HelpLinkSticker() }),
+    FINAL({ HelpFinal() });
+}
+
 @Composable
-fun HelpScreen() {
+fun HelpScreen(page: HelpPage = HelpPage.INTRO) {
     AppFrame(isHelp = true) { innerPadding ->
         StandardScreen(
             scrollable = false,
@@ -54,15 +61,17 @@ fun HelpScreen() {
                 .padding(innerPadding)
                 .height(LocalConfiguration.current.screenHeightDp.dp)
         ) {
-            HelpPager()
+            HelpPager(page.ordinal)
         }
     }
 }
 
 @Composable
-private fun HelpPager() {
+private fun HelpPager(initialPage: Int = 0) {
     val pagerState = rememberPagerState(
-        pageCount = { 5 })
+        pageCount = { HelpPage.entries.size },
+        initialPage = initialPage
+    )
 
     Column(
         modifier = Modifier
@@ -154,32 +163,11 @@ private fun PageIndicator(pageCount: Int, currentPage: Int) {
 
 @Composable
 private fun PageContent(pageNumber: Int) {
-    when (pageNumber) {
-        0 -> {
-            HelpIntro()
-        }
-        1 -> {
-            HelpYouTubeSharing()
-        }
-        2 -> {
-            HelpCreation()
-        }
-        3 -> {
-            HelpLinkSticker()
-        }
-        4 -> {
-            HelpFinal()
-        }
-
-        else -> {
-            Text("Unknown page")
-            Log.e("Help", "Illegal help page number $pageNumber")
-        }
-    }
+    HelpPage.entries[pageNumber].render()
 }
 
 @Composable
-private fun HelpPage(title: String, content: @Composable () -> Unit) {
+private fun HelpPageCard(title: String, content: @Composable () -> Unit) {
     val scrollState = rememberScrollState()
     val helpPageBackground = lerp(
         MaterialTheme.colorScheme.surfaceVariant,
@@ -238,7 +226,7 @@ private fun HelpPage(title: String, content: @Composable () -> Unit) {
 
 @Composable
 private fun HelpIntro() {
-    HelpPage("Share YouTube videos to this app") {
+    HelpPageCard("Share YouTube videos to this app") {
         Text("Share a link from YouTube, your browser, or any other app that can share text.")
         Text("Little Card will be there in your share menu.")
 
@@ -273,7 +261,7 @@ private fun HelpIntro() {
 
 @Composable
 private fun HelpYouTubeSharing() {
-    HelpPage(
+    HelpPageCard(
         "Sharing from the YouTube app"
     ) {
         Text("In the YouTube app, tap the Share button.")
@@ -291,7 +279,7 @@ private fun HelpYouTubeSharing() {
 
 @Composable
 private fun HelpCreation() {
-    HelpPage(
+    HelpPageCard(
         "Creating your card"
     ) {
         Text("Little Card prepares the image then.")
@@ -306,7 +294,7 @@ private fun HelpCreation() {
 
 @Composable
 private fun HelpLinkSticker() {
-    HelpPage("Adding the link sticker") {
+    HelpPageCard("Adding the link sticker") {
         Text("When the Instagram Story Editor opens, tap the sticker button at the top.")
 
         HelpImage("h6_insta_sticker_button", "Instagram Story editor with the Sticker button highlighted")
@@ -324,7 +312,7 @@ private fun HelpLinkSticker() {
 
 @Composable
 private fun HelpFinal() {
-    HelpPage("Make it yours") {
+    HelpPageCard("Make it yours") {
         Text("Edit the Story however you like.")
 
         HelpImage("h9_insta_fin", "Instagram Story editor with the Little Card image rotated")

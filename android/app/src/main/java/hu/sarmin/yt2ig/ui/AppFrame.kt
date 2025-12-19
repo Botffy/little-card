@@ -17,7 +17,7 @@ import hu.sarmin.yt2ig.LocalAppActions
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AppFrame(isHome: Boolean = false, isHelp: Boolean = false, content: @Composable (PaddingValues) -> Unit) {
+fun AppFrame(isHome: Boolean = false, isHelp: Boolean = false, helpPage: HelpPage = HelpPage.entries.first(), content: @Composable (PaddingValues) -> Unit) {
     val actions = LocalAppActions.current
     Scaffold(
         topBar = {
@@ -32,7 +32,7 @@ fun AppFrame(isHome: Boolean = false, isHelp: Boolean = false, content: @Composa
                 actions = {
                     if (!isHelp) {
                         IconButton(
-                            onClick = { actions.showHelp() }
+                            onClick = { actions.showHelp(helpPage) }
                         ) {
                             Icon(
                                 imageVector = Icons.AutoMirrored.Filled.HelpOutline,

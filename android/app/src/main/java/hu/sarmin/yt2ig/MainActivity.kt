@@ -13,6 +13,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.mutableStateListOf
 import androidx.core.content.FileProvider
 import androidx.lifecycle.lifecycleScope
+import hu.sarmin.yt2ig.ui.HelpPage
 import hu.sarmin.yt2ig.util.DefaultHttpClientProvider
 import hu.sarmin.yt2ig.util.hasInternet
 import hu.sarmin.yt2ig.util.toHexRgb
@@ -68,7 +69,7 @@ class MainActivity : ComponentActivity() {
                 AppActions(
                     back = { onBackPressedDispatcher.onBackPressed() },
                     goHome = { goHome() },
-                    showHelp = { showHelp() },
+                    showHelp = { page -> showHelp(page) },
                     parse = { parse(it) },
                     share = { share(it) },
                     shareToInstaStory = { shareToInstaStory(it.target.url, it.shareCard) },
@@ -134,7 +135,7 @@ class MainActivity : ComponentActivity() {
 
     fun goHome() = this.navStack.add(AppState.Home)
 
-    fun showHelp() = this.navStack.add(AppState.Help)
+    fun showHelp(page: HelpPage) = this.navStack.add(AppState.Help(page))
 
     private fun shareToInstaStory(url: HttpUrl, card: ShareCard) {
         val intent = createInstaIntent(card)
