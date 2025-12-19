@@ -1,5 +1,6 @@
 package hu.sarmin.yt2ig.ui
 
+import android.util.Log
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -339,7 +340,7 @@ private fun HelpImage(name: String, contentDescription: String) {
             inputStream.close()
             decodedBitmap
         } catch (e: Exception) {
-            Log.w("HelpImage", "Failed to load help image: $name", e)
+            Log.e("HelpImage", "Failed to load help image: $name", e)
             null
         }
     }
@@ -382,7 +383,3 @@ private fun HelpImage(name: String, contentDescription: String) {
         }
     }
 }
-
-
-
-
