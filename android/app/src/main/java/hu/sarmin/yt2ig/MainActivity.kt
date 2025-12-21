@@ -1,5 +1,6 @@
 package hu.sarmin.yt2ig
 
+import android.content.ClipData
 import android.content.Intent
 import android.graphics.Bitmap
 import android.net.Uri
@@ -226,7 +227,8 @@ class MainActivity : ComponentActivity() {
 
         val intent = Intent().apply {
             action = Intent.ACTION_SEND
-            setType("image/*")
+            setType("image/png")
+            clipData = ClipData.newRawUri("Little Card image", uri)
             putExtra(Intent.EXTRA_STREAM, uri)
             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
         }
