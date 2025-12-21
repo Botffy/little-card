@@ -25,7 +25,7 @@ suspend fun generateCard(
     videoInfo: YouTubeVideoInfo,
     imageLoader: ImageLoader,
     imageStore: ImageStore,
-): ShareCard = CardGenerator(videoInfo, imageLoader, imageStore).generate()
+): ShareCard = CardGenerator(YouTubeVideoInfo("The title of the video you're sharing", "Uploader", videoInfo.thumbnailUrl), imageLoader, imageStore).generate()
 
 private class CardGenerator(
     private val videoInfo: YouTubeVideoInfo,
@@ -93,7 +93,7 @@ private class CardGenerator(
     }
 
     private suspend fun loadThumbnail(): Bitmap {
-        val thumbnailBytes = imageLoader.fetchImage(videoInfo.thumbnailUrl)
+        val thumbnailBytes = imageStore.fetchPresetImage(ImageStore.PresetImageId.EXAMPLE_THUMBNAIL)
         return BitmapFactory.decodeByteArray(thumbnailBytes, 0, thumbnailBytes.size)
             ?: throw IOException("Failed to decode thumbnail image")
     }
