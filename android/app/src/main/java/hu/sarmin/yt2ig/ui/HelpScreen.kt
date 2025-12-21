@@ -4,9 +4,13 @@ import android.util.Log
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
@@ -16,6 +20,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.PageSize
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -27,6 +32,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -34,10 +40,13 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.PreviewLightDark
+import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.coerceAtLeast
+import androidx.compose.ui.unit.coerceAtMost
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.core.graphics.drawable.toBitmap
@@ -45,6 +54,7 @@ import hu.sarmin.yt2ig.R
 import hu.sarmin.yt2ig.ui.util.PreviewScreenElement
 import hu.sarmin.yt2ig.ui.util.ScrollIndicator
 import hu.sarmin.yt2ig.ui.util.scrollFade
+import kotlinx.coroutines.launch
 
 enum class HelpPage(val render: @Composable () -> Unit) {
     INTRO({ HelpIntro() }),
@@ -57,14 +67,24 @@ enum class HelpPage(val render: @Composable () -> Unit) {
 @Composable
 fun HelpScreen(page: HelpPage = HelpPage.INTRO) {
     AppFrame(isHelp = true) { innerPadding ->
-        StandardScreen(
-            scrollable = false,
+        Column(
             modifier = Modifier
                 .padding(innerPadding)
-                .height(LocalConfiguration.current.screenHeightDp.dp)
+                .fillMaxSize()
         ) {
             HelpPager(page.ordinal)
         }
+    }
+}
+
+private val MAX_PAGE_WIDTH = 480.dp
+private val PAGE_SPACING = 16.dp
+
+private fun actualPageSize(availableSpace: Dp): Dp = availableSpace.coerceAtMost((MAX_PAGE_WIDTH - PAGE_SPACING))
+
+val PageSizeWithMaximum = object : PageSize {
+    override fun Density.calculateMainAxisPageSize(availableSpace: Int, pageSpacing: Int): Int {
+        return actualPageSize(availableSpace.toDp()).toPx().toInt()
     }
 }
 
@@ -75,56 +95,91 @@ private fun HelpPager(initialPage: Int = 0) {
         initialPage = initialPage
     )
 
-    Column(
+    val scope = rememberCoroutineScope()
+
+    BoxWithConstraints(
         modifier = Modifier
             .fillMaxWidth()
             .fillMaxHeight()
     ) {
-        HorizontalPager(
-            state = pagerState,
-            modifier = Modifier.weight(1f)
-        ) { page ->
-            val pageOffset = (pagerState.currentPage - page) + pagerState.currentPageOffsetFraction
-            val alpha = 1f - kotlin.math.abs(pageOffset).coerceIn(0f, 1f)
+        val box = this
 
-            Column(
-                modifier = Modifier
-                    .padding(horizontal = 16.dp)
-                    .fillMaxSize()
-                    .graphicsLayer {
-                        this.alpha = alpha
-                    }
-            ) {
-                val helpPageBackground = lerp(
-                    MaterialTheme.colorScheme.surfaceVariant,
-                    MaterialTheme.colorScheme.primary,
-                    0.05f
-                )
+        val actualPageWidth = actualPageSize(box.maxWidth)
+        val horizontalPadding = ((box.maxWidth - actualPageWidth) / 2).coerceAtLeast(PAGE_SPACING)
 
-                Card(
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .fillMaxHeight()
+        ) {
+            HorizontalPager(
+                state = pagerState,
+                pageSpacing = PAGE_SPACING,
+                pageSize = PageSizeWithMaximum,
+                contentPadding = PaddingValues(start = horizontalPadding, end = horizontalPadding),
+                beyondViewportPageCount = 2,
+                modifier = Modifier.weight(1f)
+            ) { page ->
+                val pageOffset =
+                    (pagerState.currentPage - page) + pagerState.currentPageOffsetFraction
+                val alpha = (1f - kotlin.math.abs(pageOffset)).coerceIn(0.2f, 1f)
+
+                Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(bottom = 8.dp),
-                    shape = RoundedCornerShape(4.dp),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = helpPageBackground,
-                        contentColor = MaterialTheme.colorScheme.onSurfaceVariant
-                    ),
-                    border = BorderStroke(
-                        1.dp,
-                        MaterialTheme.colorScheme.primary.copy(alpha = 0.4f)
-                    )
+                        .padding(horizontal = 16.dp)
+                        .then(
+                            if (pageOffset != 0f) {
+                                Modifier.clickable(
+                                    interactionSource = remember { MutableInteractionSource() },
+                                    indication = null
+                                ) {
+                                    scope.launch {
+                                        pagerState.animateScrollToPage(page)
+                                    }
+                                }
+                            } else {
+                                Modifier
+                            }
+                        ),
+                    contentAlignment = Alignment.Center
                 ) {
-                    PageContent(page)
+
+                    val helpPageBackground = lerp(
+                        MaterialTheme.colorScheme.surfaceVariant,
+                        MaterialTheme.colorScheme.primary,
+                        0.05f
+                    )
+
+                    Card(
+                        modifier = Modifier
+                            .fillMaxHeight()
+                            .fillMaxWidth()
+                            .padding(bottom = 8.dp)
+                            .graphicsLayer {
+                                this.alpha = alpha
+                            },
+                        shape = RoundedCornerShape(4.dp),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = helpPageBackground,
+                            contentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                        ),
+                        border = BorderStroke(
+                            1.dp,
+                            MaterialTheme.colorScheme.primary.copy(alpha = 0.4f)
+                        )
+                    ) {
+                        PageContent(page)
+                    }
                 }
             }
-        }
 
-        PageIndicator(
-            pageCount = pagerState.pageCount,
-            currentPage = pagerState.currentPage
-        )
+            PageIndicator(
+                pageCount = pagerState.pageCount,
+                currentPage = pagerState.currentPage
+            )
+        }
     }
 }
 
