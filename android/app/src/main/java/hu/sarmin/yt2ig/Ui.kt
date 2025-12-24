@@ -39,6 +39,14 @@ fun App(value: AppState, functions: AppActions, getContext: () -> Context) {
             AnimatedContent(
                 targetState = value,
                 label = "state",
+                contentKey = { state ->
+                    when (state) {
+                        is AppState.Home -> "home"
+                        is AppState.Help -> "help"
+                        is AppState.Share -> "share"
+                        is AppState.Error -> "error"
+                    }
+                },
                 transitionSpec = {
                     fadeIn(
                         animationSpec = tween(
