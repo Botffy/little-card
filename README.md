@@ -34,6 +34,12 @@ Long term roadmap:
 - Create cards for any URL (using the Open Graph metadata).
 - Have a web app version.
 
+## Getting it
+
+The app is in closed testing phase. If you'd like to try it, email [armin@sarmin-softworks.hu](mailto:armin@sarmin-softworks.hu?subject=Little%20Card%20testing), and I will add you to the tester list.
+
+Alternatively, download the APK from the latest [release](https://github.com/Botffy/little-card/releases).
+
 ## Development
 
 Little Card is an Android app built with Kotlin and Jetpack Compose.
