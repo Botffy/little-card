@@ -12,6 +12,11 @@ private val Inter = FontFamily(
     Font(R.font.inter_semibold, FontWeight.SemiBold),
 )
 
+val MonoFont = FontFamily(
+    Font(R.font.jetbrains_mono_regular, FontWeight.Normal),
+    Font(R.font.jetbrains_mono_light, FontWeight.Light),
+)
+
 val interTypography = Typography().run {
     copy(
         displayLarge = displayLarge.copy(fontFamily = Inter),

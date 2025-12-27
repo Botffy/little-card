@@ -20,6 +20,7 @@ data class AppActions(
     val goHome: () -> Unit,
     val showHelp: (page: HelpPage) -> Unit,
     val back: () -> Unit,
+    val clearHomeClipboard: () -> Unit,
     val parse: (String) -> Parsing,
     val share: (ShareTarget.Valid) -> Unit,
     val shareToInstaStory: (AppState.Share.LoadingState.Created) -> Unit,
@@ -61,7 +62,7 @@ fun App(value: AppState, functions: AppActions, getContext: () -> Context) {
                 }
             ) { state ->
                 when (state) {
-                    is AppState.Home -> HomeScreen()
+                    is AppState.Home -> HomeScreen(state.data)
                     is AppState.Help -> HelpScreen(state.page)
                     is AppState.Share -> SharingScreen(state.shareTarget, state.loading)
                     is AppState.Error -> ErrorScreen(state.error.toMessage(getContext()), state.rawInput, functions.goHome)

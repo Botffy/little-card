@@ -1,6 +1,8 @@
 package hu.sarmin.yt2ig
 
 import android.content.ClipData
+import android.content.ClipDescription.MIMETYPE_TEXT_PLAIN
+import android.content.ClipboardManager
 import android.content.Intent
 import android.graphics.Bitmap
 import android.net.Uri
@@ -22,10 +24,10 @@ import hu.sarmin.yt2ig.util.hasInternet
 import hu.sarmin.yt2ig.util.toHexRgb
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
 import okhttp3.HttpUrl
 import java.io.File
 import java.io.FileOutputStream
+import java.util.concurrent.atomic.AtomicBoolean
 
 private enum class IntentType {
     LAUNCHER,
@@ -40,6 +42,9 @@ private fun getIntentType(intent: Intent?): IntentType {
 }
 
 class MainActivity : ComponentActivity() {
+
+    private val isClipboardChecked = AtomicBoolean(false)
+
     private val navStack = mutableStateListOf<AppState>()
 
     private val youTubeService: YouTubeService by lazy {
@@ -76,10 +81,16 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             App(
-                this.navStack.lastOrNull() ?: AppState.Home,
+                this.navStack.lastOrNull() ?: AppState.Home(),
                 AppActions(
                     back = { onBackPressedDispatcher.onBackPressed() },
                     goHome = { goHome() },
+                    clearHomeClipboard = {
+                        val state = currentState()
+                        if (state is AppState.Home && state.data is AppState.Home.Data.WithClipboardData) {
+                            replaceState(state, AppState.Home())
+                        }
+                    },
                     showHelp = { page -> showHelp(page) },
                     parse = { parse(it) },
                     share = { share(it) },
@@ -90,6 +101,34 @@ class MainActivity : ComponentActivity() {
                 ),
                 getContext = { this }
             )
+        }
+    }
+
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        super.onWindowFocusChanged(hasFocus)
+
+        if (!hasFocus) {
+            return
+        }
+
+        lifecycleScope.launch {
+            val appState = currentState()
+            if (isClipboardChecked.getAndSet(true)) {
+                return@launch
+            }
+
+            if (appState is AppState.Home && appState.isEmpty()) {
+                val clipboardText = readClipboard()
+                if (clipboardText == null || clipboardText.isEmpty()) {
+                    return@launch
+                }
+
+                val parsed = parse(clipboardText)
+
+                replaceState(appState, AppState.Home(AppState.Home.Data.WithClipboardData(
+                    ParsedText(clipboardText, parsed)
+                )))
+            }
         }
     }
 
@@ -115,16 +154,38 @@ class MainActivity : ComponentActivity() {
 
     private fun handleLaunch() {
         lifecycleScope.launch {
-            runBlocking {
-                val isFirstLaunch = preferencesManager.isFirstLaunch.first()
-                if (isFirstLaunch) {
-                    preferencesManager.setFirstLaunchComplete()
-                    navigateTo(listOf(AppState.Home, AppState.Help(HelpPage.INTRO)))
-                } else {
-                    navigateTo(AppState.Home)
-                }
+            val isFirstLaunch = preferencesManager.isFirstLaunch.first()
+            if (isFirstLaunch) {
+                preferencesManager.setFirstLaunchComplete()
+                navigateTo(listOf(AppState.Home(), AppState.Help(HelpPage.INTRO)))
+            } else {
+                navigateTo(AppState.Home())
             }
         }
+    }
+
+    private fun readClipboard(): String? {
+        val clipboard = getSystemService(CLIPBOARD_SERVICE) as ClipboardManager
+
+        if (!clipboard.hasPrimaryClip()) {
+            return null
+        }
+
+        val description = clipboard.primaryClipDescription ?: return null
+
+        if (!description.hasMimeType(MIMETYPE_TEXT_PLAIN) && !description.hasMimeType("text/*")) {
+            return null
+        }
+
+        val clipData = clipboard.primaryClip
+        if (clipData == null || clipData.itemCount == 0) {
+            return null
+        }
+
+        val item = clipData.getItemAt(0)
+        val text = item.coerceToText(this)
+
+        return text?.toString()
     }
 
     private fun handleShare(newIntent: Intent) {
@@ -162,6 +223,8 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    private fun currentState(): AppState? = this.navStack.lastOrNull()
+
     private fun navigateTo(newState: AppState) = this.navStack.add(newState)
     private fun navigateTo(states: List<AppState>) = this.navStack.addAll(states)
 
@@ -172,7 +235,7 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    fun goHome() = this.navStack.add(AppState.Home)
+    fun goHome() = this.navStack.add(AppState.Home())
 
     fun showHelp(page: HelpPage) = this.navStack.add(AppState.Help(page))
 
@@ -238,8 +301,8 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun copyToClipboard(url: String) {
-        val clipboard = getSystemService(CLIPBOARD_SERVICE) as android.content.ClipboardManager
-        val clip = android.content.ClipData.newPlainText("Video URL", url)
+        val clipboard = getSystemService(CLIPBOARD_SERVICE) as ClipboardManager
+        val clip = ClipData.newPlainText("Video URL", url)
         clipboard.setPrimaryClip(clip)
 
         // Only show a toast for Android 12 and lower.

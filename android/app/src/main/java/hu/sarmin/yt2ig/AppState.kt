@@ -3,7 +3,16 @@ package hu.sarmin.yt2ig
 import hu.sarmin.yt2ig.ui.HelpPage
 
 sealed interface AppState {
-    data object Home : AppState
+    data class Home(val data: Data) : AppState {
+        constructor() : this(Data.Empty)
+
+        fun isEmpty(): Boolean = data is Data.Empty
+
+        sealed interface Data {
+            data object Empty : Data
+            data class WithClipboardData(val clipboardData: ParsedText) : Data
+        }
+    }
     data class Help(val page: HelpPage): AppState
     data class Share(val shareTarget: ShareTarget.Valid, val loading: LoadingState) : AppState {
         sealed interface LoadingState {
