@@ -18,14 +18,33 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
 import hu.sarmin.yt2ig.ErrorMessage
+import hu.sarmin.yt2ig.ParsedText
 import hu.sarmin.yt2ig.Parsing
 import hu.sarmin.yt2ig.ShareTarget
 import hu.sarmin.yt2ig.YouTubeVideo
 import hu.sarmin.yt2ig.ui.util.PreviewScreenElement
 
+
+sealed interface UrlInputInitialValue {
+    val text: String
+
+    data class Parsed(val parsedText: ParsedText) : UrlInputInitialValue {
+        override val text: String get() = parsedText.text
+        val parsing: Parsing get() = parsedText.parsing
+        fun toErrorPair(): Pair<String, Parsing.Error>? {
+            return if (parsing is Parsing.Error) {
+                text to parsing as Parsing.Error
+            } else {
+                null
+            }
+        }
+    }
+    data class Raw(override val text: String) : UrlInputInitialValue
+}
+
 @Composable
 fun UrlInput(
-    initialValue: String = "",
+    initialValue: UrlInputInitialValue? = null,
     label: String? = null,
     buttonLabel: String = "Make my card",
     parse: (maybeUrl: String) -> Parsing = { Parsing.Result(YouTubeVideo("dummy")) },
@@ -33,10 +52,15 @@ fun UrlInput(
     errorMessageConverter: (ErrorMessage) -> String = { it.code },
 ) {
     val text = remember(initialValue) {
-        mutableStateOf(initialValue)
+        mutableStateOf(initialValue?.text ?: "")
     }
-    val error = remember {
-        mutableStateOf(null as Pair<String, Parsing.Error>?)
+    val error = remember(initialValue) {
+        mutableStateOf(
+            when (initialValue) {
+                is UrlInputInitialValue.Parsed -> initialValue.toErrorPair()
+                else -> null
+            }
+        )
     }
 
     Card(

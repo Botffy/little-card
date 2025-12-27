@@ -18,6 +18,7 @@ import androidx.compose.ui.unit.dp
 import hu.sarmin.yt2ig.LocalAppActions
 import hu.sarmin.yt2ig.ui.common.TextWithEmoji
 import hu.sarmin.yt2ig.ui.common.UrlInput
+import hu.sarmin.yt2ig.ui.common.UrlInputInitialValue
 import hu.sarmin.yt2ig.ui.util.PreviewScreenElement
 
 
@@ -34,7 +35,7 @@ fun ErrorScreen(message: String, originalUrl: String, goHome: () -> Unit) {
             )
 
             UrlInput(
-                initialValue = originalUrl,
+                initialValue = UrlInputInitialValue.Raw(originalUrl),
                 label = "The URL you tried:",
                 buttonLabel = "Retry",
                 parse = actions.parse,

@@ -4,6 +4,10 @@ import android.util.Log
 import okhttp3.HttpUrl
 import okhttp3.HttpUrl.Companion.toHttpUrl
 
+data class ParsedText(val text: String, val parsing: Parsing) {
+    fun isValid() = parsing is Parsing.Result
+}
+
 sealed interface Parsing {
     interface Error : Parsing {
         object InvalidUrl : Error
@@ -105,6 +109,8 @@ sealed interface ShareTarget {
          * Get the canonical url for this target.
          */
         val url: HttpUrl
+        val displayUrl: String
+            get() = url.toString()
 
         fun asResult() = Parsing.Result(this)
     }
@@ -142,6 +148,9 @@ data class YouTubeVideo(val videoId: String, val type: YouTubeVideoType = YouTub
             .host("youtu.be")
             .addPathSegment(this.videoId)
             .build()
+
+    override val displayUrl: String
+        get() = url.toString().substringAfter("https://")
 }
 
 fun getTargetFor(uri: HttpUrl): Parsing {

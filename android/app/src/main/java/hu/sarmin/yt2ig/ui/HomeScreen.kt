@@ -14,6 +14,8 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.ContentPasteGo
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ColorScheme
@@ -28,27 +30,36 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.LinkAnnotation
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withLink
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.core.net.toUri
+import hu.sarmin.yt2ig.AppState
 import hu.sarmin.yt2ig.LocalAppActions
+import hu.sarmin.yt2ig.Parsing
+import hu.sarmin.yt2ig.ShareTarget
+import hu.sarmin.yt2ig.ui.common.SpeedbumpModal
 import hu.sarmin.yt2ig.ui.common.TextWithEmoji
 import hu.sarmin.yt2ig.ui.common.UrlInput
+import hu.sarmin.yt2ig.ui.common.UrlInputInitialValue
+import hu.sarmin.yt2ig.ui.theme.MonoFont
 import hu.sarmin.yt2ig.ui.util.PreviewScreenElement
 
 @Composable
-fun HomeScreen() {
+fun HomeScreen(data: AppState.Home.Data) {
     val actions = LocalAppActions.current
-
     AppFrame(isHome = true) { padding ->
         StandardScreen(
             Modifier.padding(padding)
         ) {
             Intro()
             UrlInput(
+                initialValue = if (data is AppState.Home.Data.WithClipboardData && !data.clipboardData.isValid()) UrlInputInitialValue.Parsed(data.clipboardData) else null,
                 label = "Paste a YouTube link!",
                 buttonLabel = "Make my card",
                 parse = actions.parse,
@@ -60,7 +71,52 @@ fun HomeScreen() {
                 About()
                 Links()
             }
+
+            if (data is AppState.Home.Data.WithClipboardData && data.clipboardData.parsing is Parsing.Result) {
+                ClipboardModalDialog(
+                    shareTarget = data.clipboardData.parsing.target,
+                    onDismiss = {
+                        actions.clearHomeClipboard()
+                    },
+                    onConfirm = { parsed ->
+                        actions.clearHomeClipboard()
+                        actions.share(parsed)
+                    }
+                )
+            }
         }
+    }
+}
+
+@Composable
+fun ClipboardModalDialog(
+    shareTarget: ShareTarget.Valid,
+    onDismiss: () -> Unit,
+    onConfirm: (target: ShareTarget.Valid) -> Unit
+) {
+    SpeedbumpModal(
+        onDismiss = onDismiss,
+        onConfirm = { onConfirm(shareTarget) },
+        icon = Icons.Outlined.ContentPasteGo,
+        topTitle = "There's a YouTube link on your clipboard",
+        mainTitleContent = {
+            Text(
+                text = shareTarget.displayUrl,
+                style = MaterialTheme.typography.titleLarge.copy(
+                    fontFamily = MonoFont,
+                    fontWeight = FontWeight.Light,
+                    letterSpacing = 0.2.sp
+                ),
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
+        },
+        confirmButtonText = "Create card!",
+        scrimAlpha = 0.5f
+    ) {
+        Text(
+            text = "Would you like me to make a card for it?"
+        )
     }
 }
 
