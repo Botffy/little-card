@@ -1,6 +1,7 @@
 package hu.sarmin.yt2ig
 
 import com.google.common.truth.Truth.assertThat
+import okhttp3.HttpUrl.Companion.toHttpUrl
 import org.junit.jupiter.api.Test
 
 class ParseYouTubeTest {
@@ -13,6 +14,7 @@ class ParseYouTubeTest {
         assertResult<YouTubeVideo>(target) { video ->
             assertThat(video.videoId).isEqualTo(videoId)
             assertThat(video.type).isEqualTo(YouTubeVideoType.NORMAL)
+            assertThat(video.url).isEqualTo("https://youtu.be/$videoId".toHttpUrl())
         }
     }
 
@@ -30,6 +32,7 @@ class ParseYouTubeTest {
             assertThat(video.videoId).isEqualTo(videoId)
             assertThat(video.type).isEqualTo(YouTubeVideoType.SHORTS)
             assertThat(video.app).isEqualTo(YouTubeApp.YOUTUBE)
+            assertThat(video.url).isEqualTo("https://www.youtube.com/shorts/$videoId".toHttpUrl())
         }
     }
 
@@ -47,6 +50,7 @@ class ParseYouTubeTest {
             assertThat(video.videoId).isEqualTo(videoId)
             assertThat(video.type).isEqualTo(YouTubeVideoType.LIVE)
             assertThat(video.app).isEqualTo(YouTubeApp.YOUTUBE)
+            assertThat(video.url).isEqualTo("https://www.youtube.com/live/$videoId".toHttpUrl())
         }
     }
 

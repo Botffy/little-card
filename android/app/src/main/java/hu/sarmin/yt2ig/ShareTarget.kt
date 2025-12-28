@@ -142,27 +142,40 @@ enum class YouTubeVideoType {
     }
 }
 
-private fun shortenedYouTubeUrl(videoId: String): HttpUrl = HttpUrl.Builder()
-    .scheme("https")
-    .host("youtu.be")
-    .addPathSegment(videoId)
-    .build()
-
-private fun youTubeMusicUrl(videoId: String): HttpUrl = HttpUrl.Builder()
-    .scheme("https")
-    .host("music.youtube.com")
-    .addPathSegment("watch")
-    .addQueryParameter("v", videoId)
-    .build()
-
 data class YouTubeVideo(val videoId: String, val type: YouTubeVideoType = YouTubeVideoType.NORMAL, val app: YouTubeApp = YouTubeApp.YOUTUBE) : ShareTarget.Valid {
     init {
         require(videoId.isNotBlank()) { "Invalid video ID" }
     }
 
     override val url: HttpUrl = when (app) {
-        YouTubeApp.YOUTUBE -> shortenedYouTubeUrl(videoId)
-        YouTubeApp.YOUTUBE_MUSIC -> youTubeMusicUrl(videoId)
+        YouTubeApp.YOUTUBE -> {
+            when (type) {
+                YouTubeVideoType.NORMAL -> HttpUrl.Builder()
+                    .scheme("https")
+                    .host("youtu.be")
+                    .addPathSegment(videoId)
+                    .build()
+                YouTubeVideoType.SHORTS -> HttpUrl.Builder()
+                    .scheme("https")
+                    .host("www.youtube.com")
+                    .addPathSegment("shorts")
+                    .addPathSegment(videoId)
+                    .build()
+                YouTubeVideoType.LIVE -> HttpUrl.Builder()
+                    .scheme("https")
+                    .host("www.youtube.com")
+                    .addPathSegment("live")
+                    .addPathSegment(videoId)
+                    .build()
+            }
+        }
+
+        YouTubeApp.YOUTUBE_MUSIC -> HttpUrl.Builder()
+            .scheme("https")
+            .host("music.youtube.com")
+            .addPathSegment("watch")
+            .addQueryParameter("v", videoId)
+            .build()
     }
 
     override val displayUrl: String
