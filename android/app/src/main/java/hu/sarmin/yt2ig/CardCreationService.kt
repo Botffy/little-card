@@ -65,7 +65,7 @@ class CardCreationService(
 
     private suspend fun getInfo(currentState: LoadingState): LoadingState {
         require(currentState is LoadingState.Starting)
-        val videoInfo = youTubeService.getVideoInfo(currentState.target.videoId)
+        val videoInfo = youTubeService.getVideoInfo(currentState.target)
         return LoadingState.LoadedInfo(currentState.target, videoInfo)
     }
 

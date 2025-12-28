@@ -99,9 +99,14 @@ private class CardGenerator(
     }
 
     private fun loadLogo(): Bitmap {
-        val logoBytes = imageStore.fetchPresetImage(ImageStore.PresetImageId.YOUTUBE_LOGO)
+        val logoBytes = imageStore.fetchPresetImage(
+            when (videoInfo.app) {
+                YouTubeApp.YOUTUBE -> ImageStore.PresetImageId.YOUTUBE_LOGO
+                YouTubeApp.YOUTUBE_MUSIC -> ImageStore.PresetImageId.YOUTUBE_MUSIC_LOGO
+            }
+        )
         return BitmapFactory.decodeByteArray(logoBytes, 0, logoBytes.size)
-            ?: throw IllegalStateException("Failed to decode YouTube logo")
+            ?: throw IllegalStateException("Failed to decode logo")
     }
 
     private fun calculateLogoWidth(): Float {

@@ -12,6 +12,7 @@ import org.json.JSONObject
 private const val YOUTUBE_API_URL = "https://www.googleapis.com/youtube/v3/"
 
 data class YouTubeVideoInfo(
+    val app: YouTubeApp,
     val title: String,
     val channel: String,
     val thumbnailUrl: HttpUrl
@@ -26,16 +27,16 @@ sealed interface YouTubeCardCreationError : CardCreationError {
 }
 
 interface YouTubeService {
-    suspend fun getVideoInfo(videoId: String): YouTubeVideoInfo
+    suspend fun getVideoInfo(video: YouTubeVideo): YouTubeVideoInfo
 }
 
 class RealYouTubeService(private val httpClientProvider: HttpClientProvider, private val apiKey: String) : YouTubeService {
-    override suspend fun getVideoInfo(videoId: String): YouTubeVideoInfo {
+    override suspend fun getVideoInfo(video: YouTubeVideo): YouTubeVideoInfo {
         val url = YOUTUBE_API_URL.toHttpUrl()
             .newBuilder()
             .addPathSegment("videos")
             .addQueryParameter("part", "snippet,contentDetails")
-            .addQueryParameter("id", videoId)
+            .addQueryParameter("id", video.videoId)
             .build()
 
         val request = Request.Builder()
@@ -52,7 +53,7 @@ class RealYouTubeService(private val httpClientProvider: HttpClientProvider, pri
             val jsonResponse = JSONObject(response.body.string())
             val items = jsonResponse.getJSONArray("items")
             if (items.length() == 0) {
-                Log.w("YtApi", "No video info found for video ID: $videoId")
+                Log.w("YtApi", "No video info found for video ID: ${video.videoId}")
                 throw CardCreationException(YouTubeCardCreationError.VideoInfoNotFound)
             }
             val item = items.getJSONObject(0)
@@ -69,7 +70,8 @@ class RealYouTubeService(private val httpClientProvider: HttpClientProvider, pri
             return YouTubeVideoInfo(
                 title = title,
                 channel = uploader,
-                thumbnailUrl = thumbnailUrl.toHttpUrl()
+                thumbnailUrl = thumbnailUrl.toHttpUrl(),
+                app = video.app
             )
         }
     }

@@ -1,6 +1,7 @@
 package hu.sarmin.yt2ig
 
 import com.google.common.truth.Truth.assertThat
+import okhttp3.HttpUrl.Companion.toHttpUrl
 import org.junit.jupiter.api.Test
 
 class ParseYouTubeTest {
@@ -13,6 +14,7 @@ class ParseYouTubeTest {
         assertResult<YouTubeVideo>(target) { video ->
             assertThat(video.videoId).isEqualTo(videoId)
             assertThat(video.type).isEqualTo(YouTubeVideoType.NORMAL)
+            assertThat(video.url).isEqualTo("https://youtu.be/$videoId".toHttpUrl())
         }
     }
 
@@ -29,6 +31,8 @@ class ParseYouTubeTest {
         assertResult<YouTubeVideo>(target) { video ->
             assertThat(video.videoId).isEqualTo(videoId)
             assertThat(video.type).isEqualTo(YouTubeVideoType.SHORTS)
+            assertThat(video.app).isEqualTo(YouTubeApp.YOUTUBE)
+            assertThat(video.url).isEqualTo("https://www.youtube.com/shorts/$videoId".toHttpUrl())
         }
     }
 
@@ -45,6 +49,8 @@ class ParseYouTubeTest {
         assertResult<YouTubeVideo>(target) { video ->
             assertThat(video.videoId).isEqualTo(videoId)
             assertThat(video.type).isEqualTo(YouTubeVideoType.LIVE)
+            assertThat(video.app).isEqualTo(YouTubeApp.YOUTUBE)
+            assertThat(video.url).isEqualTo("https://www.youtube.com/live/$videoId".toHttpUrl())
         }
     }
 
@@ -202,10 +208,42 @@ class ParseYouTubeTest {
         assertResult<YouTubeVideo>(target) { video ->
             assertThat(video.videoId).isEqualTo(videoId)
             assertThat(video.type).isEqualTo(YouTubeVideoType.SHORTS)
+            assertThat(video.app).isEqualTo(YouTubeApp.YOUTUBE)
         }
     }
 
     @Test
+    fun `handles YouTube Music urls`() {
+        val target = parse("https://music.youtube.com/watch?v=$videoId")
+
+        assertResult<YouTubeVideo>(target) { video ->
+            assertThat(video.videoId).isEqualTo(videoId)
+            assertThat(video.type).isEqualTo(YouTubeVideoType.NORMAL)
+            assertThat(video.app).isEqualTo(YouTubeApp.YOUTUBE_MUSIC)
+            assertThat(video.url.toString()).isEqualTo("https://music.youtube.com/watch?v=$videoId")
+        }
+    }
+
+    @Test
+    fun `YouTube Music doesn't have shorts`() {
+        assertError<YouTubeParsingError.UnknownPath>(parse("https://music.youtube.com/shorts/$videoId"))
+    }
+
+    @Test
+    fun `YouTube Music doesn't have live`() {
+        assertError<YouTubeParsingError.UnknownPath>(parse("https://music.youtube.com/live/$videoId"))
+    }
+
+    @Test
+    fun `YouTube Music channels aren't handled`() {
+        assertError<YouTubeParsingError.IsChannel>(parse("https://music.youtube.com/channel/UCp0uxdUViQ2LTAqRePby68g"))
+    }
+
+    @Test
+    fun `YouTube Music playlists aren't handled`() {
+        assertError<YouTubeParsingError.IsPlaylist>(parse("https://music.youtube.com/playlist?list=LRYRch3uwCwj7NwTXoqianhkVWtIL9fcX_GId&si=1PdCeQbYxdvFRVIl"))
+    }
+
     inline fun <reified T : ShareTarget.Valid> assertResult(actual: Parsing, noinline block: (T) -> Unit) {
         assertThat(actual).isInstanceOf(Parsing.Result::class.java)
         val target = (actual as Parsing.Result).target

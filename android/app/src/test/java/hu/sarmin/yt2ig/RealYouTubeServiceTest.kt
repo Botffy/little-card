@@ -18,7 +18,7 @@ class RealYouTubeServiceTest {
     fun `getVideoInfo returns correct info for valid video id`() {
         MockWebServer().withDispatcher(dispatcher) { _, clientProvider ->
             val service = RealYouTubeService(clientProvider, TEST_API_KEY)
-            val result = runBlocking { service.getVideoInfo(EXISTING_VIDEO_ID) }
+            val result = runBlocking { service.getVideoInfo(YouTubeVideo(EXISTING_VIDEO_ID)) }
             assertEquals("https://i.ytimg.com/vi/I_aBmrYChfQ/hqdefault.jpg", result.thumbnailUrl.toString())
             assertEquals("Pixies - Where is my mind", result.title)
             assertEquals("CasaAzul65", result.channel)
@@ -29,7 +29,7 @@ class RealYouTubeServiceTest {
     fun `getVideoInfo throws exception for non-existing video id`() {
         MockWebServer().withDispatcher(dispatcher) { _, clientProvider  ->
             val service = RealYouTubeService(clientProvider, TEST_API_KEY)
-            assertThrows<CardCreationException> { runBlocking { service.getVideoInfo("nonesuch") } }
+            assertThrows<CardCreationException> { runBlocking { service.getVideoInfo(YouTubeVideo("nonesuch")) } }
         }
     }
 }

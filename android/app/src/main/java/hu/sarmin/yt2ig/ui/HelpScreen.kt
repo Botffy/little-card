@@ -289,8 +289,8 @@ private fun HelpPageCard(title: String, content: @Composable () -> Unit) {
 
 @Composable
 private fun HelpIntro() {
-    HelpPageCard("Share YouTube videos to this app") {
-        Text("Share a link from YouTube, your browser, or any other app that can share text.")
+    HelpPageCard("Share YouTube links to this app") {
+        Text("Share a link from the YouTube or YouTube Music app, your browser, or any other app that can share text.")
         Text("Little Card will be there in your share menu.")
 
         val context = LocalContext.current
