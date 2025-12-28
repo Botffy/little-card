@@ -2,7 +2,8 @@
 
 A small tool built to remove a bit of the hassle from sharing YouTube videos to Instagram Stories.
 
-It creates a nice image "card" out of a YouTube video link, which can be added to a Story along with the link, making the story more visually appealing.
+It creates a nice image "card" out of a YouTube link, which can be added to a Story along with the link, making the story more visually appealing.
+It works with both YouTube and YouTube Music.
 
 - Not affiliated with YouTube or Instagram.
 - Uses only public APIs, in accordance with their terms of service.
@@ -12,7 +13,7 @@ It creates a nice image "card" out of a YouTube video link, which can be added t
 
 ## What it does
 
-- Creates a "card" - an image out of a YouTube video link you provide.
+- Creates a "card": an image out of a YouTube or YouTube Music link you provide.
 - The image is the video thumbnail, with the video title and channel name added along with a border.
 - The Android app shares the image directly to the Instagram Story Editor.
 
@@ -30,7 +31,6 @@ We use [GitHub Issues](https://github.com/Botffy/little-card/issues) to track fe
 
 Long term roadmap:
 
-- Create cards for YouTube Music links.
 - Create cards for any URL (using the Open Graph metadata).
 - Have a web app version.
 

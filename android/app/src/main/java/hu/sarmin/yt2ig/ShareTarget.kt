@@ -124,6 +124,11 @@ sealed interface YouTubeParsingError : Parsing.Error {
     object UnknownPath : YouTubeParsingError
 }
 
+
+enum class YouTubeApp {
+    YOUTUBE, YOUTUBE_MUSIC
+}
+
 enum class YouTubeVideoType {
     NORMAL, SHORTS, LIVE;
 
@@ -137,17 +142,28 @@ enum class YouTubeVideoType {
     }
 }
 
-data class YouTubeVideo(val videoId: String, val type: YouTubeVideoType = YouTubeVideoType.NORMAL) : ShareTarget.Valid {
+private fun shortenedYouTubeUrl(videoId: String): HttpUrl = HttpUrl.Builder()
+    .scheme("https")
+    .host("youtu.be")
+    .addPathSegment(videoId)
+    .build()
+
+private fun youTubeMusicUrl(videoId: String): HttpUrl = HttpUrl.Builder()
+    .scheme("https")
+    .host("music.youtube.com")
+    .addPathSegment("watch")
+    .addQueryParameter("v", videoId)
+    .build()
+
+data class YouTubeVideo(val videoId: String, val type: YouTubeVideoType = YouTubeVideoType.NORMAL, val app: YouTubeApp = YouTubeApp.YOUTUBE) : ShareTarget.Valid {
     init {
         require(videoId.isNotBlank()) { "Invalid video ID" }
     }
 
-    // https://youtu.be/O6yP5jgiq34
-    override val url: HttpUrl = HttpUrl.Builder()
-            .scheme("https")
-            .host("youtu.be")
-            .addPathSegment(this.videoId)
-            .build()
+    override val url: HttpUrl = when (app) {
+        YouTubeApp.YOUTUBE -> shortenedYouTubeUrl(videoId)
+        YouTubeApp.YOUTUBE_MUSIC -> youTubeMusicUrl(videoId)
+    }
 
     override val displayUrl: String
         get() = url.toString().substringAfter("https://")
@@ -159,6 +175,7 @@ fun getTargetFor(uri: HttpUrl): Parsing {
     return when (host) {
         "www.youtube.com", "youtube.com" -> parseYouTubeLongLink(uri)
         "youtu.be" -> parseYouTubeShortLink(uri)
+        "music.youtube.com" -> parseYouTubeMusicLink(uri)
         else -> Parsing.Error.UnknownShareTarget
     }
 }
@@ -174,18 +191,13 @@ private fun parseYouTubeLongLink(uri: HttpUrl): Parsing {
     val firstSegment = uri.pathSegments.firstOrNull()?.takeIf { it.isNotBlank() } ?: return YouTubeParsingError.NoPath
 
     return when (firstSegment) {
-        "watch" -> {
-            uri.queryParameter("v")
-                ?.takeIf { it.isNotBlank() }
-                ?.let { videoId -> YouTubeVideo(videoId).asResult() }
-                ?: YouTubeParsingError.NoVideoId
-        }
+        "watch" -> parseWatchLink(uri, YouTubeApp.YOUTUBE)
         "shorts", "live" -> {
             uri.pathSegments.getOrNull(1)
                 ?.takeIf { it.isNotBlank() }
                 ?.let { videoId ->
                     val type = YouTubeVideoType.fromPathSegment(firstSegment)
-                    YouTubeVideo(videoId, type).asResult()
+                    YouTubeVideo(videoId, type, YouTubeApp.YOUTUBE).asResult()
                 }
                 ?: YouTubeParsingError.NoVideoId
         }
@@ -193,4 +205,25 @@ private fun parseYouTubeLongLink(uri: HttpUrl): Parsing {
         "playlist" -> YouTubeParsingError.IsPlaylist
         else -> YouTubeParsingError.UnknownPath
     }
+}
+
+private fun parseYouTubeMusicLink(uri: HttpUrl): Parsing {
+    val firstSegment = uri.pathSegments.firstOrNull()?.takeIf { it.isNotBlank() } ?: return YouTubeParsingError.NoPath
+
+    return when (firstSegment) {
+        "watch" -> parseWatchLink(uri, YouTubeApp.YOUTUBE_MUSIC)
+        "channel" -> YouTubeParsingError.IsChannel
+        "playlist" -> YouTubeParsingError.IsPlaylist
+        else -> YouTubeParsingError.UnknownPath
+    }
+}
+
+private fun parseWatchLink(uri: HttpUrl, app: YouTubeApp): Parsing {
+    return uri.queryParameter("v")
+        ?.takeIf { it.isNotBlank() }
+        ?.let { videoId -> YouTubeVideo(
+            videoId = videoId,
+            app = app
+        ).asResult() }
+        ?: YouTubeParsingError.NoVideoId
 }

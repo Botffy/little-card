@@ -60,7 +60,7 @@ fun HomeScreen(data: AppState.Home.Data) {
             Intro()
             UrlInput(
                 initialValue = if (data is AppState.Home.Data.WithClipboardData && !data.clipboardData.isValid()) UrlInputInitialValue.Parsed(data.clipboardData) else null,
-                label = "Paste a YouTube link!",
+                label = "Paste a link!",
                 buttonLabel = "Make my card",
                 parse = actions.parse,
                 share = actions.share,
@@ -98,7 +98,7 @@ fun ClipboardModalDialog(
         onDismiss = onDismiss,
         onConfirm = { onConfirm(shareTarget) },
         icon = Icons.Outlined.ContentPasteGo,
-        topTitle = "There's a YouTube link on your clipboard",
+        topTitle = "There's a link on your clipboard",
         mainTitleContent = {
             Text(
                 text = shareTarget.displayUrl,
@@ -242,7 +242,7 @@ private fun About() {
                 buildAnnotatedString {
                     withStyle(style.toSpanStyle()) {
                         append("""
-                        This is a small application that helps you share YouTube videos in your Instagram Story.
+                        This is a small application that helps you share YouTube videos or YouTube Music songs in your Instagram Story.
                         
                         Share a YouTube link with this app, and it will generate a nice-looking card for you to share on Insta.
                         
