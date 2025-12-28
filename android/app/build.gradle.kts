@@ -56,8 +56,8 @@ android {
         applicationId = "hu.sarmin.yt2ig"
         minSdk = 27
         targetSdk = 36
-        versionCode = 3
-        versionName = "mvp-rc2"
+        versionCode = 4
+        versionName = "mvp-rc3"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
