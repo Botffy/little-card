@@ -26,7 +26,8 @@ data class AppActions(
     val shareToInstaStory: (AppState.Share.LoadingState.Created) -> Unit,
     val shareToOther: (AppState.Share.LoadingState.Created) -> Unit,
     val copyUrl: (ShareTarget.Valid) -> Unit,
-    val toMessage: (ErrorMessage) -> String
+    val toMessage: (ErrorMessage) -> String,
+    val saveHomeUrl: (String) -> Unit = {}
 )
 
 val LocalAppActions = staticCompositionLocalOf<AppActions> {
@@ -62,7 +63,7 @@ fun App(value: AppState, functions: AppActions, getContext: () -> Context) {
                 }
             ) { state ->
                 when (state) {
-                    is AppState.Home -> HomeScreen(state.data)
+                    is AppState.Home -> HomeScreen(state.data, state.savedUrl)
                     is AppState.Help -> HelpScreen(state.page)
                     is AppState.Share -> SharingScreen(state.shareTarget, state.loading)
                     is AppState.Error -> ErrorScreen(state.error.toMessage(getContext()), state.rawInput, functions.goHome)

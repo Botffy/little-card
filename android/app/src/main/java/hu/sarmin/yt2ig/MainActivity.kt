@@ -88,7 +88,7 @@ class MainActivity : ComponentActivity() {
                     clearHomeClipboard = {
                         val state = currentState()
                         if (state is AppState.Home && state.data is AppState.Home.Data.WithClipboardData) {
-                            replaceState(state, AppState.Home())
+                            replaceState(state, AppState.Home(savedUrl = state.savedUrl))
                         }
                     },
                     showHelp = { page -> showHelp(page) },
@@ -97,7 +97,12 @@ class MainActivity : ComponentActivity() {
                     shareToInstaStory = { shareToInstaStory(it.target.url, it.shareCard) },
                     shareToOther = { shareToOther(it.shareCard) },
                     copyUrl = { target -> copyToClipboard(target.url.toString()) },
-                    toMessage = { errorMessage -> errorMessage.toMessage(this) }
+                    toMessage = { errorMessage -> errorMessage.toMessage(this) },
+                    saveHomeUrl = { url -> 
+                        lifecycleScope.launch {
+                            preferencesManager.saveHomeUrl(url)
+                        }
+                    }
                 ),
                 getContext = { this }
             )
@@ -127,7 +132,7 @@ class MainActivity : ComponentActivity() {
 
                 replaceState(appState, AppState.Home(AppState.Home.Data.WithClipboardData(
                     ParsedText(clipboardText, parsed)
-                )))
+                ), savedUrl = appState.savedUrl))
             }
         }
     }
@@ -155,11 +160,12 @@ class MainActivity : ComponentActivity() {
     private fun handleLaunch() {
         lifecycleScope.launch {
             val isFirstLaunch = preferencesManager.isFirstLaunch.first()
+            val savedUrl = preferencesManager.homeUrl.first()
             if (isFirstLaunch) {
                 preferencesManager.setFirstLaunchComplete()
-                navigateTo(listOf(AppState.Home(), AppState.Help(HelpPage.INTRO)))
+                navigateTo(listOf(AppState.Home(savedUrl = savedUrl), AppState.Help(HelpPage.INTRO)))
             } else {
-                navigateTo(AppState.Home())
+                navigateTo(AppState.Home(savedUrl = savedUrl))
             }
         }
     }
@@ -235,7 +241,7 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    fun goHome() = this.navStack.add(AppState.Home())
+    fun goHome() = this.navStack.add(AppState.Home(savedUrl = ""))
 
     fun showHelp(page: HelpPage) = this.navStack.add(AppState.Help(page))
 

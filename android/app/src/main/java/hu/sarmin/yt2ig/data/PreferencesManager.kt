@@ -5,6 +5,7 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -15,6 +16,7 @@ class PreferencesManager(private val context: Context) {
 
     companion object {
         private val IS_FIRST_LAUNCH = booleanPreferencesKey("is_first_launch")
+        private val HOME_URL = stringPreferencesKey("home_url")
     }
 
     val isFirstLaunch: Flow<Boolean> = context.dataStore.data
@@ -25,6 +27,23 @@ class PreferencesManager(private val context: Context) {
     suspend fun setFirstLaunchComplete() {
         context.dataStore.edit { preferences ->
             preferences[IS_FIRST_LAUNCH] = false
+        }
+    }
+
+    val homeUrl: Flow<String> = context.dataStore.data
+        .map { preferences ->
+            preferences[HOME_URL] ?: ""
+        }
+
+    suspend fun saveHomeUrl(url: String) {
+        context.dataStore.edit { preferences ->
+            preferences[HOME_URL] = url
+        }
+    }
+
+    suspend fun clearHomeUrl() {
+        context.dataStore.edit { preferences ->
+            preferences.remove(HOME_URL)
         }
     }
 }

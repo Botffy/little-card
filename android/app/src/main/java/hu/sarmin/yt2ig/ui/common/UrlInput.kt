@@ -50,6 +50,7 @@ fun UrlInput(
     parse: (maybeUrl: String) -> Parsing = { Parsing.Result(YouTubeVideo("dummy")) },
     share: (ShareTarget.Valid) -> Unit = {},
     errorMessageConverter: (ErrorMessage) -> String = { it.code },
+    onTextChange: (String) -> Unit = {}
 ) {
     val text = remember(initialValue) {
         mutableStateOf(initialValue?.text ?: "")
@@ -91,6 +92,7 @@ fun UrlInput(
                 value = text.value,
                 onValueChange = {
                     text.value = it
+                    onTextChange(it)
                     if (error.value?.first != it) {
                         error.value = null
                     }

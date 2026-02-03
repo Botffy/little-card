@@ -3,8 +3,8 @@ package hu.sarmin.yt2ig
 import hu.sarmin.yt2ig.ui.HelpPage
 
 sealed interface AppState {
-    data class Home(val data: Data) : AppState {
-        constructor() : this(Data.Empty)
+    data class Home(val data: Data, val savedUrl: String = "") : AppState {
+        constructor() : this(Data.Empty, "")
 
         fun isEmpty(): Boolean = data is Data.Empty
 

@@ -51,7 +51,7 @@ import hu.sarmin.yt2ig.ui.theme.MonoFont
 import hu.sarmin.yt2ig.ui.util.PreviewScreenElement
 
 @Composable
-fun HomeScreen(data: AppState.Home.Data) {
+fun HomeScreen(data: AppState.Home.Data, savedUrl: String = "") {
     val actions = LocalAppActions.current
     AppFrame(isHome = true) { padding ->
         StandardScreen(
@@ -59,12 +59,19 @@ fun HomeScreen(data: AppState.Home.Data) {
         ) {
             Intro()
             UrlInput(
-                initialValue = if (data is AppState.Home.Data.WithClipboardData && !data.clipboardData.isValid()) UrlInputInitialValue.Parsed(data.clipboardData) else null,
+                initialValue = when {
+                    data is AppState.Home.Data.WithClipboardData && !data.clipboardData.isValid() -> 
+                        UrlInputInitialValue.Parsed(data.clipboardData)
+                    savedUrl.isNotBlank() -> 
+                        UrlInputInitialValue.Raw(savedUrl)
+                    else -> null
+                },
                 label = "Paste a link!",
                 buttonLabel = "Make my card",
                 parse = actions.parse,
                 share = actions.share,
-                errorMessageConverter = actions.toMessage
+                errorMessageConverter = actions.toMessage,
+                onTextChange = actions.saveHomeUrl
             )
 
             Column {
