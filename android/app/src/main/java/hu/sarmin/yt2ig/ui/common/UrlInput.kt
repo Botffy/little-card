@@ -67,6 +67,7 @@ fun UrlInput(
     }
 
     // Debounce the onTextChange callback to reduce disk writes
+    // This cancels previous pending calls when text changes
     LaunchedEffect(text.value) {
         delay(500) // Wait 500ms after user stops typing
         onTextChange(text.value)

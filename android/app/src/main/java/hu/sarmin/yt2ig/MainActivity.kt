@@ -242,12 +242,7 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    fun goHome() {
-        lifecycleScope.launch {
-            val savedUrl = preferencesManager.homeUrl.first()
-            navStack.add(AppState.Home(savedUrl = savedUrl))
-        }
-    }
+    fun goHome() = this.navStack.add(AppState.Home(savedUrl = ""))
 
     fun showHelp(page: HelpPage) = this.navStack.add(AppState.Help(page))
 
