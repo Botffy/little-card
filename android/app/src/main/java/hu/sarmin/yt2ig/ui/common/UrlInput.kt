@@ -11,6 +11,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -23,6 +24,7 @@ import hu.sarmin.yt2ig.Parsing
 import hu.sarmin.yt2ig.ShareTarget
 import hu.sarmin.yt2ig.YouTubeVideo
 import hu.sarmin.yt2ig.ui.util.PreviewScreenElement
+import kotlinx.coroutines.delay
 
 
 sealed interface UrlInputInitialValue {
@@ -64,6 +66,12 @@ fun UrlInput(
         )
     }
 
+    // Debounce the onTextChange callback to reduce disk writes
+    LaunchedEffect(text.value) {
+        delay(500) // Wait 500ms after user stops typing
+        onTextChange(text.value)
+    }
+
     Card(
         modifier = Modifier
             .padding(bottom = 8.dp)
@@ -92,7 +100,6 @@ fun UrlInput(
                 value = text.value,
                 onValueChange = {
                     text.value = it
-                    onTextChange(it)
                     if (error.value?.first != it) {
                         error.value = null
                     }

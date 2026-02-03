@@ -130,9 +130,10 @@ class MainActivity : ComponentActivity() {
 
                 val parsed = parse(clipboardText)
 
-                replaceState(appState, AppState.Home(AppState.Home.Data.WithClipboardData(
-                    ParsedText(clipboardText, parsed)
-                ), savedUrl = appState.savedUrl))
+                replaceState(appState, AppState.Home(
+                    AppState.Home.Data.WithClipboardData(ParsedText(clipboardText, parsed)),
+                    savedUrl = appState.savedUrl
+                ))
             }
         }
     }
@@ -241,7 +242,12 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    fun goHome() = this.navStack.add(AppState.Home(savedUrl = ""))
+    fun goHome() {
+        lifecycleScope.launch {
+            val savedUrl = preferencesManager.homeUrl.first()
+            navStack.add(AppState.Home(savedUrl = savedUrl))
+        }
+    }
 
     fun showHelp(page: HelpPage) = this.navStack.add(AppState.Help(page))
 
