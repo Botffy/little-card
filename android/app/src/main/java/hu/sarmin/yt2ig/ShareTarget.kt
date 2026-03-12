@@ -142,7 +142,7 @@ enum class YouTubeVideoType {
     }
 }
 
-data class YouTubeVideo(val videoId: String, val type: YouTubeVideoType = YouTubeVideoType.NORMAL, val app: YouTubeApp = YouTubeApp.YOUTUBE) : ShareTarget.Valid {
+data class YouTubeVideo(val videoId: String, val type: YouTubeVideoType = YouTubeVideoType.NORMAL, val app: YouTubeApp = YouTubeApp.YOUTUBE, val timestamp: String? = null) : ShareTarget.Valid {
     init {
         require(videoId.isNotBlank()) { "Invalid video ID" }
     }
@@ -154,18 +154,21 @@ data class YouTubeVideo(val videoId: String, val type: YouTubeVideoType = YouTub
                     .scheme("https")
                     .host("youtu.be")
                     .addPathSegment(videoId)
+                    .apply { timestamp?.let { addQueryParameter("t", it) } }
                     .build()
                 YouTubeVideoType.SHORTS -> HttpUrl.Builder()
                     .scheme("https")
                     .host("www.youtube.com")
                     .addPathSegment("shorts")
                     .addPathSegment(videoId)
+                    .apply { timestamp?.let { addQueryParameter("t", it) } }
                     .build()
                 YouTubeVideoType.LIVE -> HttpUrl.Builder()
                     .scheme("https")
                     .host("www.youtube.com")
                     .addPathSegment("live")
                     .addPathSegment(videoId)
+                    .apply { timestamp?.let { addQueryParameter("t", it) } }
                     .build()
             }
         }
@@ -175,6 +178,7 @@ data class YouTubeVideo(val videoId: String, val type: YouTubeVideoType = YouTub
             .host("music.youtube.com")
             .addPathSegment("watch")
             .addQueryParameter("v", videoId)
+            .apply { timestamp?.let { addQueryParameter("t", it) } }
             .build()
     }
 
@@ -194,9 +198,10 @@ fun getTargetFor(uri: HttpUrl): Parsing {
 }
 
 private fun parseYouTubeShortLink(uri: HttpUrl): Parsing {
+    val timestamp = uri.queryParameter("t")
     return uri.pathSegments.firstOrNull()
         ?.takeIf { it.isNotBlank() }
-        ?.let { videoId -> YouTubeVideo(videoId).asResult() }
+        ?.let { videoId -> YouTubeVideo(videoId, timestamp = timestamp).asResult() }
         ?: return YouTubeParsingError.NoVideoId
 }
 
@@ -206,11 +211,12 @@ private fun parseYouTubeLongLink(uri: HttpUrl): Parsing {
     return when (firstSegment) {
         "watch" -> parseWatchLink(uri, YouTubeApp.YOUTUBE)
         "shorts", "live" -> {
+            val timestamp = uri.queryParameter("t")
             uri.pathSegments.getOrNull(1)
                 ?.takeIf { it.isNotBlank() }
                 ?.let { videoId ->
                     val type = YouTubeVideoType.fromPathSegment(firstSegment)
-                    YouTubeVideo(videoId, type, YouTubeApp.YOUTUBE).asResult()
+                    YouTubeVideo(videoId, type, YouTubeApp.YOUTUBE, timestamp).asResult()
                 }
                 ?: YouTubeParsingError.NoVideoId
         }
@@ -232,11 +238,13 @@ private fun parseYouTubeMusicLink(uri: HttpUrl): Parsing {
 }
 
 private fun parseWatchLink(uri: HttpUrl, app: YouTubeApp): Parsing {
+    val timestamp = uri.queryParameter("t")
     return uri.queryParameter("v")
         ?.takeIf { it.isNotBlank() }
         ?.let { videoId -> YouTubeVideo(
             videoId = videoId,
-            app = app
+            app = app,
+            timestamp = timestamp
         ).asResult() }
         ?: YouTubeParsingError.NoVideoId
 }

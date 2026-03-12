@@ -244,6 +244,75 @@ class ParseYouTubeTest {
         assertError<YouTubeParsingError.IsPlaylist>(parse("https://music.youtube.com/playlist?list=LRYRch3uwCwj7NwTXoqianhkVWtIL9fcX_GId&si=1PdCeQbYxdvFRVIl"))
     }
 
+    @Test
+    fun `preserves timestamp in youtu-be url`() {
+        val target = parse("https://youtu.be/${videoId}?t=123")
+
+        assertResult<YouTubeVideo>(target) { video ->
+            assertThat(video.videoId).isEqualTo(videoId)
+            assertThat(video.timestamp).isEqualTo("123")
+            assertThat(video.url.toString()).isEqualTo("https://youtu.be/$videoId?t=123")
+        }
+    }
+
+    @Test
+    fun `preserves timestamp in youtube watch url`() {
+        val target = parse("https://www.youtube.com/watch?v=$videoId&t=456")
+
+        assertResult<YouTubeVideo>(target) { video ->
+            assertThat(video.videoId).isEqualTo(videoId)
+            assertThat(video.timestamp).isEqualTo("456")
+            assertThat(video.url.toString()).isEqualTo("https://youtu.be/$videoId?t=456")
+        }
+    }
+
+    @Test
+    fun `preserves timestamp in youtube shorts url`() {
+        val target = parse("https://www.youtube.com/shorts/${videoId}?t=789")
+
+        assertResult<YouTubeVideo>(target) { video ->
+            assertThat(video.videoId).isEqualTo(videoId)
+            assertThat(video.type).isEqualTo(YouTubeVideoType.SHORTS)
+            assertThat(video.timestamp).isEqualTo("789")
+            assertThat(video.url.toString()).isEqualTo("https://www.youtube.com/shorts/$videoId?t=789")
+        }
+    }
+
+    @Test
+    fun `preserves timestamp in youtube live url`() {
+        val target = parse("https://www.youtube.com/live/${videoId}?t=321")
+
+        assertResult<YouTubeVideo>(target) { video ->
+            assertThat(video.videoId).isEqualTo(videoId)
+            assertThat(video.type).isEqualTo(YouTubeVideoType.LIVE)
+            assertThat(video.timestamp).isEqualTo("321")
+            assertThat(video.url.toString()).isEqualTo("https://www.youtube.com/live/$videoId?t=321")
+        }
+    }
+
+    @Test
+    fun `preserves timestamp in YouTube Music url`() {
+        val target = parse("https://music.youtube.com/watch?v=$videoId&t=654")
+
+        assertResult<YouTubeVideo>(target) { video ->
+            assertThat(video.videoId).isEqualTo(videoId)
+            assertThat(video.app).isEqualTo(YouTubeApp.YOUTUBE_MUSIC)
+            assertThat(video.timestamp).isEqualTo("654")
+            assertThat(video.url.toString()).isEqualTo("https://music.youtube.com/watch?v=$videoId&t=654")
+        }
+    }
+
+    @Test
+    fun `handles urls without timestamp`() {
+        val target = parse("https://youtu.be/${videoId}")
+
+        assertResult<YouTubeVideo>(target) { video ->
+            assertThat(video.videoId).isEqualTo(videoId)
+            assertThat(video.timestamp).isNull()
+            assertThat(video.url.toString()).isEqualTo("https://youtu.be/$videoId")
+        }
+    }
+
     inline fun <reified T : ShareTarget.Valid> assertResult(actual: Parsing, noinline block: (T) -> Unit) {
         assertThat(actual).isInstanceOf(Parsing.Result::class.java)
         val target = (actual as Parsing.Result).target
