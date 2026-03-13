@@ -1,6 +1,7 @@
 package hu.sarmin.yt2ig
 
 import android.util.Log
+import androidx.compose.runtime.saveable.Saver
 import okhttp3.HttpUrl
 import okhttp3.HttpUrl.Companion.toHttpUrl
 
@@ -11,6 +12,7 @@ data class ParsedText(val text: String, val parsing: Parsing) {
 sealed interface Parsing {
     interface Error : Parsing {
         object InvalidUrl : Error
+        object NoShareTarget : Error
         object UnknownShareTarget : Error
         object MultipleUrls : Error
 
@@ -18,6 +20,40 @@ sealed interface Parsing {
             get() = ErrorMessage("error_parsing_${this::class.simpleName!!.lowercase()}")
     }
     data class Result(val target: ShareTarget.Valid) : Parsing
+}
+
+object ParsingSaver {
+    fun save(parsing: Parsing): String = when (parsing) {
+        is Parsing.Result -> "RES:${parsing.target.url}"
+        else -> "ERR:${parsing::class.java.name}"
+    }
+
+    fun restore(saved: String): Parsing = when {
+        saved.startsWith("RES:") -> {
+            val url = saved.removePrefix("RES:")
+            parse(url)
+        }
+        saved.startsWith("ERR:") -> {
+            val className = saved.removePrefix("ERR:")
+            try {
+                val clazz = Class.forName(className)
+                val instance = try {
+                    clazz.getField("INSTANCE").get(null) as? Parsing
+                } catch (_: NoSuchFieldException) {
+                    null
+                }
+                instance ?: Parsing.Error.InvalidUrl
+            } catch (_: Throwable) {
+                Parsing.Error.InvalidUrl
+            }
+        }
+        else -> Parsing.Error.InvalidUrl
+    }
+
+    val asSaver: Saver<Parsing, String> = Saver(
+        save = { save(it) },
+        restore = { restore(it) }
+    )
 }
 
 private const val TAG = "ShareTarget"
@@ -113,6 +149,7 @@ sealed interface ShareTarget {
             get() = url.toString()
 
         fun asResult() = Parsing.Result(this)
+        fun asParsedText() = ParsedText(displayUrl, asResult())
     }
 }
 
