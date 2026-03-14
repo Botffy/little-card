@@ -23,6 +23,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
@@ -40,9 +43,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.net.toUri
 import hu.sarmin.yt2ig.AppState
+import hu.sarmin.yt2ig.Input
 import hu.sarmin.yt2ig.LocalAppActions
+import hu.sarmin.yt2ig.ParsedText
 import hu.sarmin.yt2ig.Parsing
 import hu.sarmin.yt2ig.ShareTarget
+import hu.sarmin.yt2ig.parse
 import hu.sarmin.yt2ig.ui.common.SpeedbumpModal
 import hu.sarmin.yt2ig.ui.common.TextWithEmoji
 import hu.sarmin.yt2ig.ui.common.UrlInput
@@ -51,20 +57,57 @@ import hu.sarmin.yt2ig.ui.theme.MonoFont
 import hu.sarmin.yt2ig.ui.util.PreviewScreenElement
 
 @Composable
-fun HomeScreen(data: AppState.Home.Data) {
+fun HomeScreen(state: AppState.Home) {
     val actions = LocalAppActions.current
     AppFrame(isHome = true) { padding ->
         StandardScreen(
             Modifier.padding(padding)
         ) {
             Intro()
+
+            val initialValue = when (state.data) {
+                is Input.Parsed -> UrlInputInitialValue.Parsed(state.data.parsedText)
+                is Input.Raw -> UrlInputInitialValue.Raw(state.data.rawText)
+            }
+
+            val url = rememberSaveable(state.fromClipboard) { mutableStateOf(initialValue.text) }
+            val error = rememberSaveable(state.fromClipboard, state.data, saver = ErrorStateSaver) {
+                mutableStateOf(
+                    when (initialValue) {
+                        is UrlInputInitialValue.Parsed -> initialValue.toErrorPair()
+                        else -> null
+                    }
+                )
+            }
+
+            DisposableEffect(state) {
+                onDispose { actions.updateHomeInput(ParsedText(url.value, parse(url.value))) }
+            }
+
             UrlInput(
-                initialValue = if (data is AppState.Home.Data.WithClipboardData && !data.clipboardData.isValid()) UrlInputInitialValue.Parsed(data.clipboardData) else null,
+                value = url.value,
+                error = error.value,
                 label = "Paste a link!",
                 buttonLabel = "Make my card",
-                parse = actions.parse,
-                share = actions.share,
-                errorMessageConverter = actions.toMessage
+                errorMessageConverter = actions.toMessage,
+                onValueChange = {
+                    if (it != error.value?.first) {
+                        error.value = null
+                    }
+
+                    url.value = it
+                },
+                onSubmit = {
+                    val parsingResult = actions.parse(url.value)
+
+                    actions.updateHomeInput(ParsedText(url.value, parsingResult))
+                    if (parsingResult is Parsing.Result) {
+                        error.value = null
+                        actions.share(url.value, parsingResult.target)
+                    } else if (parsingResult is Parsing.Error) {
+                        error.value = url.value to parsingResult
+                    }
+                }
             )
 
             Column {
@@ -72,15 +115,15 @@ fun HomeScreen(data: AppState.Home.Data) {
                 Links()
             }
 
-            if (data is AppState.Home.Data.WithClipboardData && data.clipboardData.parsing is Parsing.Result) {
+            if (state.fromClipboard && state.data is Input.Parsed && state.data.parsedText.parsing is Parsing.Result) {
                 ClipboardModalDialog(
-                    shareTarget = data.clipboardData.parsing.target,
+                    shareTarget = state.data.parsedText.parsing.target,
                     onDismiss = {
                         actions.clearHomeClipboard()
                     },
                     onConfirm = { parsed ->
-                        actions.clearHomeClipboard()
-                        actions.share(parsed)
+                        actions.clearHomeClipboardFlag()
+                        actions.share(state.data.parsedText.text, parsed)
                     }
                 )
             }

@@ -22,11 +22,14 @@ data class AppActions(
     val back: () -> Unit,
     val clearHomeClipboard: () -> Unit,
     val parse: (String) -> Parsing,
-    val share: (ShareTarget.Valid) -> Unit,
+    val share: (String, ShareTarget.Valid) -> Unit,
     val shareToInstaStory: (AppState.Share.LoadingState.Created) -> Unit,
     val shareToOther: (AppState.Share.LoadingState.Created) -> Unit,
     val copyUrl: (ShareTarget.Valid) -> Unit,
-    val toMessage: (ErrorMessage) -> String
+    val toMessage: (ErrorMessage) -> String,
+    val updateHomeInput: (ParsedText) -> Unit,
+    val updateErrorInput: (ParsedText) -> Unit,
+    val clearHomeClipboardFlag: () -> Unit
 )
 
 val LocalAppActions = staticCompositionLocalOf<AppActions> {
@@ -62,10 +65,10 @@ fun App(value: AppState, functions: AppActions, getContext: () -> Context) {
                 }
             ) { state ->
                 when (state) {
-                    is AppState.Home -> HomeScreen(state.data)
+                    is AppState.Home -> HomeScreen(state)
                     is AppState.Help -> HelpScreen(state.page)
                     is AppState.Share -> SharingScreen(state.shareTarget, state.loading)
-                    is AppState.Error -> ErrorScreen(state.error.toMessage(getContext()), state.rawInput, functions.goHome)
+                    is AppState.Error -> ErrorScreen(state.error.toMessage(getContext()), state.input, functions.goHome)
                 }
             }
         }

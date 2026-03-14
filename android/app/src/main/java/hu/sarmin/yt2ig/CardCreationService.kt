@@ -56,7 +56,7 @@ class CardCreationService(
 
                 navigation.replaceState(
                     AppState.Share(target, currentState),
-                    AppState.Error(errorMessage, target.url.toString())
+                    AppState.Error(errorMessage, ParsedText(target.url.toString(), Parsing.Result(target)))
                 )
                 return
             }

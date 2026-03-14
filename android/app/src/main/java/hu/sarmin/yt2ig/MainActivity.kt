@@ -87,17 +87,37 @@ class MainActivity : ComponentActivity() {
                     goHome = { goHome() },
                     clearHomeClipboard = {
                         val state = currentState()
-                        if (state is AppState.Home && state.data is AppState.Home.Data.WithClipboardData) {
+                        if (state is AppState.Home && state.fromClipboard) {
                             replaceState(state, AppState.Home())
+                        }
+                    },
+                    clearHomeClipboardFlag = {
+                        val state = currentState()
+                        if (state is AppState.Home && state.fromClipboard) {
+                            replaceState(state, state.copy(fromClipboard = false))
                         }
                     },
                     showHelp = { page -> showHelp(page) },
                     parse = { parse(it) },
-                    share = { share(it) },
+                    share = { rawText, parsed -> share(rawText, parsed) },
                     shareToInstaStory = { shareToInstaStory(it.target.url, it.shareCard) },
                     shareToOther = { shareToOther(it.shareCard) },
                     copyUrl = { target -> copyToClipboard(target.url.toString()) },
-                    toMessage = { errorMessage -> errorMessage.toMessage(this) }
+                    toMessage = { errorMessage -> errorMessage.toMessage(this) },
+
+                    updateHomeInput = { parsed ->
+                        val state = lastStateThat { it is AppState.Home }
+                        if (state is AppState.Home) {
+                            replaceState(state, state.copy(data = Input.Parsed(parsed)))
+                        }
+                    },
+
+                    updateErrorInput = { parsed ->
+                        val state = lastStateThat { it is AppState.Error }
+                        if (state is AppState.Error) {
+                            replaceState(state, state.copy(input = parsed))
+                        }
+                    },
                 ),
                 getContext = { this }
             )
@@ -124,10 +144,13 @@ class MainActivity : ComponentActivity() {
                 }
 
                 val parsed = parse(clipboardText)
+                if (parsed is Parsing.Error) {
+                    return@launch
+                }
 
-                replaceState(appState, AppState.Home(AppState.Home.Data.WithClipboardData(
+                replaceState(appState, AppState.Home(Input.Parsed(
                     ParsedText(clipboardText, parsed)
-                )))
+                ), fromClipboard = true))
             }
         }
     }
@@ -147,7 +170,7 @@ class MainActivity : ComponentActivity() {
             IntentType.UNKNOWN -> {
                 val message = "unhandled intent: ${newIntent.action}, ${newIntent.type}"
                 Log.e("App", "handleIntent: $message")
-                navigateTo(AppState.Error(ErrorMessage("error_any", listOf(message)), ""))
+                navigateTo(AppState.Error(ErrorMessage("error_any", listOf(message)), null))
             }
         }
     }
@@ -191,30 +214,30 @@ class MainActivity : ComponentActivity() {
     private fun handleShare(newIntent: Intent) {
         val maybeUrl = newIntent.getStringExtra(Intent.EXTRA_TEXT)
         if (maybeUrl == null) {
-            navigateTo(AppState.Error(ErrorMessage("error_no_shared_text"), ""))
+            navigateTo(AppState.Error(ErrorMessage("error_no_shared_text"), null))
             return
         }
 
         when (val result = parse(maybeUrl))  {
             is Parsing.Error -> {
-                navigateTo(AppState.Error(result.errorMessage, maybeUrl))
+                navigateTo(AppState.Error(result.errorMessage, ParsedText(maybeUrl, result)))
             }
 
             is Parsing.Result -> {
-                share(result.target)
+                share(maybeUrl, result.target)
             }
         }
     }
 
-    private fun share(target: ShareTarget.Valid) {
+    private fun share(rawText: String, target: ShareTarget.Valid) {
         // TODO this will get more generic, I promise
         if (target !is YouTubeVideo) {
-            navigateTo(AppState.Error(ErrorMessage("error_parsing_unknownsharetarget"), target.url.toString()))
+            navigateTo(AppState.Error(ErrorMessage("error_parsing_unknownsharetarget"), ParsedText(rawText, Parsing.Result(target))))
             return
         }
 
         if (!this.hasInternet()) {
-            navigateTo(AppState.Error(ErrorMessage("error_no_network"), target.url.toString()))
+            navigateTo(AppState.Error(ErrorMessage("error_no_network"), ParsedText(rawText, Parsing.Result(target))))
             return
         }
 
@@ -224,6 +247,7 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun currentState(): AppState? = this.navStack.lastOrNull()
+    private fun lastStateThat(predicate: (AppState) -> Boolean): AppState? = this.navStack.lastOrNull(predicate)
 
     private fun navigateTo(newState: AppState) = this.navStack.add(newState)
     private fun navigateTo(states: List<AppState>) = this.navStack.addAll(states)

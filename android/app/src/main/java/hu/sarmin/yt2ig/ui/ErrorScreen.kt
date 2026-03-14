@@ -12,18 +12,21 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
 import hu.sarmin.yt2ig.LocalAppActions
+import hu.sarmin.yt2ig.ParsedText
+import hu.sarmin.yt2ig.Parsing
 import hu.sarmin.yt2ig.ui.common.TextWithEmoji
 import hu.sarmin.yt2ig.ui.common.UrlInput
-import hu.sarmin.yt2ig.ui.common.UrlInputInitialValue
 import hu.sarmin.yt2ig.ui.util.PreviewScreenElement
 
 
 @Composable
-fun ErrorScreen(message: String, originalUrl: String, goHome: () -> Unit) {
+fun ErrorScreen(message: String, initialValue: ParsedText?, goHome: () -> Unit) {
     val actions = LocalAppActions.current
 
     AppFrame { padding ->
@@ -34,13 +37,34 @@ fun ErrorScreen(message: String, originalUrl: String, goHome: () -> Unit) {
                 text = message
             )
 
+            val url = rememberSaveable(initialValue) { mutableStateOf(initialValue?.text ?: "") }
+            val error = rememberSaveable(initialValue, saver = ErrorStateSaver) {
+                mutableStateOf(null as Pair<String, Parsing.Error>?)
+            }
+
             UrlInput(
-                initialValue = UrlInputInitialValue.Raw(originalUrl),
+                value = url.value,
+                error = error.value,
+                onValueChange = {
+                    if (it != error.value?.first) {
+                        error.value = null
+                    }
+                    url.value = it
+                },
+                onSubmit = {
+                    val parsingResult = actions.parse(url.value)
+
+                    actions.updateErrorInput(ParsedText(url.value, parsingResult))
+                    if (parsingResult is Parsing.Result) {
+                        error.value = null
+                        actions.share(url.value, parsingResult.target)
+                    } else if (parsingResult is Parsing.Error) {
+                        error.value = url.value to parsingResult
+                    }
+                },
                 label = "The URL you tried:",
                 buttonLabel = "Retry",
-                parse = actions.parse,
-                share = actions.share,
-                errorMessageConverter = actions.toMessage
+                errorMessageConverter = actions.toMessage,
             )
         }
     }
